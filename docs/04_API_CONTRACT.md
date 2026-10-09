@@ -98,6 +98,8 @@ GET `/me`의 data는 `user_id, display_name, role, site_id, shift_occurrence_id,
 
 GET `/equipment`는 id·code·label·aliases, GET `/shifts`는 허용 교대 발생 ID·시작/종료·supervisor와 허용 인계 쌍을 반환한다. 상세·목록에서 계산한 `allowed_commands`는 UI 표시 보조이며 서버 명령 검사를 대체하지 않는다.
 
+Incident 상세의 단일 `handover` 요약은 같은 사업장이고 현재 사용자가 생성자 또는 수신자인 인계만 대상으로 한다. 여러 인계가 같은 사건을 포함하면 `created_at DESC, id DESC`의 첫 인계를 선택한다. 최신 인계의 비참여자에게는 그 인계의 존재나 내용 대신 자신이 읽을 수 있는 과거 인계의 요약만 반환한다. snapshot·token은 이 요약에 포함하지 않는다.
+
 ## 4. 제보 접수와 메시지·답변
 
 **POST `/incidents` → 202 Accepted**

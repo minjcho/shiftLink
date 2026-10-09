@@ -22,7 +22,7 @@ F1의 공통 구현을 기준으로 전체 Compose와 세션 교대 검증·단�
 
 ## 로컬 실행
 
-설정은 프로세스 환경변수만 읽는다. `.env` 파일을 자동으로 열지 않는다. 아래 개발 환경은 localhost에만 노출한다.
+API·worker 설정은 프로세스 환경변수만 읽고 `.env` 파일을 자동으로 열지 않는다. 웹의 Vite는 `VITE_` 공개 설정을 별도로 사용한다. 아래 개발 환경은 localhost에만 노출한다.
 
 ```sh
 python3 -m venv .venv
@@ -61,6 +61,16 @@ npm run dev -- --host 127.0.0.1 --port 5173
 미설정·실패한 live를 fake로 전환하지 않는다. 이 구현 작업은 실제 계정 호출을 실행하지 않았으며 모델별 사용 가능 여부를 주장하지 않는다. Responses 전송은 strict schema, `store:false`, `parallel_tool_calls:false`, 같은 run output과 call ID를 보존한다. 스키마 제약은 [OpenAI 공식 function calling 문서](https://developers.openai.com/api/docs/guides/function-calling#strict-mode)를 따랐다.
 
 ## 독립 검증 환경
+
+### API prefix와 입력 예산
+
+브라우저는 공개 설정 `VITE_API_BASE_URL`을 사용하고 미설정 시 `/api/v1`을 유지한다. `/gateway/api/v1/`처럼 끝 슬래시가 있는 값은 정규화한다. 동일 출처의 비어 있지 않은 ASCII 경로 구간만 지원하며 외부 URL·루트·점 구간·percent encoding은 설정 오류로 거부한다. Vite 개발 프록시는 이 prefix를 API의 `/api/v1`로 전달한다. 배포 시에도 같은 프록시 매핑이 필요하며, 환경변수 변경 후 웹을 다시 빌드해야 한다. 쿠키와 멱등 키 전달은 그대로다.
+
+worker의 `AGENT_MAX_INPUT_BYTES` 기본값은 262144, 허용 범위는 32768~1048576이다. 모델 입력을 만들 때 DB 원문은 보존하고 필요한 현재 사실·질문/답변·작업·근거를 우선하여 부가 이력을 선택한다. 원문이 이미 messages에 있으면 모델용 Evidence는 해당 위치를 가리켜 중복 본문을 피한다. 정정과 연결된 원문은 함께 포함하거나 함께 생략한다. 매 호출의 시스템 지침·schema·누적 도구 결과까지 검사하며, 온전한 필수 입력이 한도를 넘으면 `CONTEXT_LIMIT`으로 실패를 표시하고 해당 모델 호출·업무 후보 확정을 하지 않는다. 기존 OPEN→INVESTIGATING 조사 시작 기록은 유지하며 용량 오류가 그 전이를 되돌리지는 않는다. 바이트 예산은 정확한 모델 token 수를 뜻하지 않으며 모델별 적합성은 live 확인 대상이다.
+
+리뷰 보완의 유지 조건과 경계는 [리뷰 수정 명세](specs/f1-review-fixes/SPEC.md)에 정리했다. 기존 목표의 완료 기록과 이번 수정의 직접 검증은 구분한다.
+
+### 실행
 
 시험은 사용자 업무 DB와 분리한 PostgreSQL 17에서 매 시험마다 임의 schema를 생성·삭제한다. 기본 시험 URI의 계정은 localhost의 폐기 가능한 시험 전용 값이다. 다른 DB를 쓰면 `TEST_DATABASE_URL`을 명시한다. 기존 업무 데이터베이스를 시험 대상으로 지정하지 않는다.
 

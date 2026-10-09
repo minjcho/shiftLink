@@ -19,7 +19,9 @@
 
 ## 다음 구현 작업
 
-F1 PR #6을 공통 기준으로 F0 보강 PR을 검토한다. #8의 독립 schema·worker·화면을 중복 병합하지 않는다. F2/F3/F4는 [새 F0 연결 계약](docs/17_F0_FOUNDATION.md)에 맞춰 ORM Session·FeaturePorts·상세 slot을 연결한다. 실제 모델 L1a/L1b/L2/L3와 F1 미해결 리뷰 3건은 별도다. 기존 Seal 완료 기록을 이번 F0 검증으로 바꾸지 않는다.
+F1 PR #6에 F0 보강 PR #9가 병합됐다. #8의 독립 schema·worker·화면을 중복 병합하지 않는다. F2/F3/F4는 [새 F0 연결 계약](docs/17_F0_FOUNDATION.md)에 맞춰 ORM Session·FeaturePorts·상세 slot을 연결한다. 실제 모델 L1a/L1b/L2/L3는 별도다. F1 리뷰 수정은 아래 보완 명세와 최신 직접 검증 기록을 따른다. 기존 Seal 완료 기록을 이번 F0 검증으로 바꾸지 않는다.
+
+리뷰 다섯 항목의 수정 범위는 [리뷰 수정 명세](docs/specs/f1-review-fixes/SPEC.md)에 정리했다. 불확실한 접수 복구·잠금 순서·인계 요약·모델 입력 예산·API prefix를 보완했으며 이번 직접 검증은 과거 Seal 완료 기록과 구분한다.
 
 ## 시간순 기록
 

@@ -27,20 +27,27 @@ const stale = computed(() => !!detail.value?.analysis && detail.value.analysis.b
 const canRetryJob = computed(() => !!detail.value && props.me.role === 'supervisor' && props.me.user_id === detail.value.owner_id && detail.value.allowed_commands.includes('retry_job') && job.value?.status === 'FAILED' && job.value.retryable);
 function replyCommand(id: string) { return replyCommands[id] ?? (replyCommands[id] = new Command()); }
 function canAnswer(request: RequestItem) { return request.status === 'OPEN' && request.target_user_id === props.me.user_id && detail.value?.allowed_commands.includes('reply_request'); }
-async function refresh() {
+async function refresh(): Promise<boolean> {
   const current = ++sequence;
   loading.value = true;
   try {
     const { data } = await api.request<IncidentDetail>(`/incidents/${encodeURIComponent(props.id)}`);
-    if (current !== sequence) return;
+    if (current !== sequence) return false;
     detail.value = data; readError.value = ''; lastSuccess.value = new Date().toISOString();
     if (data.latest_job) {
       try {
         const result = await api.request<Job>(`/jobs/${encodeURIComponent(data.latest_job.id)}`);
         if (current === sequence) { job.value = result.data; jobError.value = ''; }
-      } catch (error) { if (current === sequence && !(error instanceof SessionChanged)) { job.value = data.latest_job; jobError.value = errorMessage(error); } }
+      } catch (error) {
+        if (current === sequence && !(error instanceof SessionChanged)) { job.value = data.latest_job; jobError.value = errorMessage(error); }
+        return false;
+      }
     } else { job.value = null; jobError.value = ''; }
-  } catch (error) { if (current === sequence && !(error instanceof SessionChanged)) readError.value = errorMessage(error); }
+    return current === sequence;
+  } catch (error) {
+    if (current === sequence && !(error instanceof SessionChanged)) readError.value = errorMessage(error);
+    return false;
+  }
   finally { if (current === sequence) loading.value = false; }
 }
 onMounted(() => void refresh());
@@ -57,7 +64,11 @@ async function sendMessage(requestId?: string, retry = false) {
     await refresh();
   } catch { /* Retain inputs and exact retry snapshot. */ }
 }
-async function review(command: CommandState) { await refresh(); if (!readError.value) command.reset(); }
+async function review(command: CommandState) {
+  if (!command.canReview) return;
+  const refreshed = await refresh();
+  if (refreshed && command.canReview) command.reset();
+}
 async function retryJob(retry = false) {
   if (!job.value) return;
   try {

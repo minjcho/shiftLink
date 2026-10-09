@@ -213,10 +213,12 @@ def detail(tx, principal, incident_id, settings):
     result["latest_job"] = job_data(tx, principal, job, incident, settings) if job else None
     result["handover"] = None
     # No snapshot/token is embedded in public Incident read. Participants get a link and freshness summary.
-    for item, handover in tx.execute(select(HandoverItem, Handover).join(Handover, Handover.id == HandoverItem.handover_id)
-            .where(HandoverItem.incident_id == incident.id, Handover.site_id == principal.site_id)):
-        if principal.user_id not in {handover.created_by, handover.receiver_id}:
-            continue
+    latest_readable = tx.execute(select(HandoverItem, Handover).join(Handover, Handover.id == HandoverItem.handover_id)
+        .where(HandoverItem.incident_id == incident.id, Handover.site_id == principal.site_id,
+               or_(Handover.created_by == principal.user_id, Handover.receiver_id == principal.user_id))
+        .order_by(Handover.created_at.desc(), Handover.id.desc()).limit(1)).first()
+    if latest_readable:
+        item, handover = latest_readable
         revision = tx.get(HandoverRevision, (item.id, item.latest_revision))
         ack = tx.scalar(select(HandoverAck).where(HandoverAck.item_id == item.id, HandoverAck.revision == item.latest_revision))
         result["handover"] = {"id": handover.id, "item_id": item.id, "revision": item.latest_revision,

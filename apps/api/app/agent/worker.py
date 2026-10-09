@@ -20,14 +20,14 @@ from app.core.ports import FeaturePorts
 from app.core.worker_lock import single_worker
 from .finalizer import DecisionRejected, finalize
 from .jobs import LostLease, claim_job, finish_failure, prepare_run, recover_exhausted
-from .runner import OpenAIResponsesTransport, RunLimits, run_agent
+from .runner import ContextLimit, OpenAIResponsesTransport, RunLimits, run_agent
 from .tools import ToolExecutor
 
 
 def runtime_metadata(settings: Settings, adapter) -> dict:
     public = {name: getattr(settings, name) for name in (
         "agent_run_deadline_seconds", "agent_max_model_calls", "agent_max_tool_calls",
-        "agent_max_output_tokens", "search_max_chunks", "search_max_chunk_chars",
+        "agent_max_output_tokens", "agent_max_input_bytes", "search_max_chunks", "search_max_chunk_chars",
         "worker_poll_interval_seconds", "job_lease_seconds", "job_max_attempts", "dataset_id",
         "app_timezone",
     )}
@@ -73,7 +73,9 @@ def run_once(session_factory, settings: Settings, ports: FeaturePorts, model_ada
         return None
     execution = None
     try:
-        context = prepare_run(session_factory, identity, ports)
+        context = prepare_run(session_factory, identity, ports,
+                              max_input_bytes=settings.agent_max_input_bytes,
+                              max_output_tokens=settings.agent_max_output_tokens)
         identity = context.identity
         executor = ToolExecutor(session_factory, context, max_chunks=settings.search_max_chunks,
                                 max_chunk_chars=settings.search_max_chunk_chars,
@@ -81,7 +83,8 @@ def run_once(session_factory, settings: Settings, ports: FeaturePorts, model_ada
         execution = run_agent(
             context=context.payload, transport=model_adapter, execute_tool=executor,
             limits=RunLimits(settings.agent_run_deadline_seconds, settings.agent_max_model_calls,
-                             settings.agent_max_tool_calls, settings.agent_max_output_tokens), started_at=start)
+                             settings.agent_max_tool_calls, settings.agent_max_output_tokens,
+                             settings.agent_max_input_bytes), started_at=start)
         if execution.error is not None:
             applied = finish_failure(session_factory, identity, execution.error, execution=execution)
             return {"status": "FAILED" if applied else "LEASE_LOST", "job_id": identity.job_id,
@@ -89,6 +92,9 @@ def run_once(session_factory, settings: Settings, ports: FeaturePorts, model_ada
         return finalize(session_factory, identity, execution, ports)
     except LostLease:
         return {"status": "LEASE_LOST", "job_id": identity.job_id, "run_id": identity.run_id}
+    except ContextLimit:
+        error = {"code": "CONTEXT_LIMIT", "message": "Required incident context exceeds the configured byte budget",
+                 "retryable": False}
     except (DecisionRejected, DomainError) as exc:
         error = {"code": exc.code, "message": "The server rejected the investigation result or required feature boundary",
                  "retryable": bool(getattr(exc, "retryable", False))}

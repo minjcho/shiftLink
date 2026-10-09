@@ -3,11 +3,113 @@ import { mount, flushPromises, type VueWrapper } from '@vue/test-utils';
 import IncidentList from '../src/features/intake/IncidentList.vue';
 import IncidentDetail from '../src/features/intake/IncidentDetail.vue';
 import App from '../src/App.vue';
+import CommandFeedback from '../src/components/CommandFeedback.vue';
 import { detail, equipment, job, maintainer, reporter, response, failure } from './fixtures';
 const wrappers: VueWrapper[] = [];
 afterEach(() => { wrappers.forEach(w => w.unmount()); wrappers.length = 0; vi.unstubAllGlobals(); });
 const listRender = async () => { const w = mount(IncidentList, { props: { equipment } }); wrappers.push(w); await flushPromises(); return w; };
+const detailRender = async () => { const w = mount(IncidentDetail, { props: { id: 'incident-1', me: maintainer, equipment } }); wrappers.push(w); await flushPromises(); return w; };
+const reviewScenes = [
+  { name: 'intake', render: listRender, input: '#intake-text', form: '.intake-form form', feedback: 'intake-error' },
+  { name: 'reply', render: detailRender, input: '#reply-request-1', form: '.question-card form', feedback: 'reply-error-request-1' },
+];
+const getData = (url: string) => url.includes('/jobs/') ? job : url.includes('/incidents?') ? { items: [], next_cursor: null } : detail();
 describe('AC31 inputs and observed-read state', () => {
+  for (const scene of reviewScenes) {
+    it.each([false, true])(`${scene.name} preserves an uncertain command across manual reads and review events (read failure: %s)`, async readFails => {
+      let uncertainWrite = false;
+      const fetcher = vi.fn().mockImplementation((url: string, init: RequestInit) => {
+        if (init.method === 'POST') {
+          uncertainWrite = true;
+          return Promise.reject(new TypeError('response lost'));
+        }
+        return uncertainWrite && readFails ? Promise.reject(new TypeError('read failed')) : Promise.resolve(response(getData(url)));
+      });
+      vi.stubGlobal('fetch', fetcher);
+      const wrapper = await scene.render();
+      await wrapper.find(scene.input).setValue('불확실한 원문 유지');
+      await wrapper.find(scene.form).trigger('submit'); await flushPromises();
+      const feedback = wrapper.findAllComponents(CommandFeedback).find(c => c.props('errorId') === scene.feedback)!;
+      const command = feedback.props('command');
+      await wrapper.findAll('button').find(b => b.text() === '새로고침')!.trigger('click'); await flushPromises();
+      // A stale component event must be safe independently of whether its button is visible.
+      feedback.vm.$emit('review'); await flushPromises();
+      expect(command.hasPending).toBe(true);
+      expect(command.canRetry).toBe(true);
+      expect(feedback.findAll('button').some(b => b.text() === '최신 내용 조회 · 새 요청 준비')).toBe(false);
+      expect((wrapper.find(scene.input).element as HTMLTextAreaElement).value).toBe('불확실한 원문 유지');
+      expect(wrapper.find(scene.input).attributes()).toHaveProperty('disabled');
+      const posts = () => fetcher.mock.calls.filter(call => call[1].method === 'POST');
+      expect(posts()).toHaveLength(1);
+      await feedback.findAll('button').find(b => b.text() === '같은 요청 결과 확인')!.trigger('click'); await flushPromises();
+      expect(posts()).toHaveLength(2);
+      expect(posts()[1][1].body).toBe(posts()[0][1].body);
+      expect(posts()[1][1].headers['Idempotency-Key']).toBe(posts()[0][1].headers['Idempotency-Key']);
+    });
+    it(`${scene.name} retains a known rejected request until a current successful review read`, async () => {
+      let readFails = false;
+      const fetcher = vi.fn().mockImplementation((url: string, init: RequestInit) => init.method === 'POST'
+        ? Promise.resolve(failure('VERSION_CONFLICT'))
+        : readFails ? Promise.reject(new TypeError('read failed')) : Promise.resolve(response(getData(url))));
+      vi.stubGlobal('fetch', fetcher);
+      const wrapper = await scene.render();
+      await wrapper.find(scene.input).setValue('거부된 원문 유지'); await wrapper.find(scene.form).trigger('submit'); await flushPromises();
+      const feedback = wrapper.findAllComponents(CommandFeedback).find(c => c.props('errorId') === scene.feedback)!;
+      const command = feedback.props('command');
+      readFails = true; feedback.vm.$emit('review'); await flushPromises();
+      expect(command.hasPending).toBe(true);
+      expect(fetcher.mock.calls.filter(c => c[1].method === 'POST')).toHaveLength(1);
+      readFails = false; feedback.vm.$emit('review'); await flushPromises();
+      expect(command.hasPending).toBe(false);
+      expect((wrapper.find(scene.input).element as HTMLTextAreaElement).value).toBe('거부된 원문 유지');
+      await wrapper.find(scene.form).trigger('submit'); await flushPromises();
+      const posts = fetcher.mock.calls.filter(call => call[1].method === 'POST');
+      expect(posts).toHaveLength(2);
+      expect(posts[1][1].headers['Idempotency-Key']).not.toBe(posts[0][1].headers['Idempotency-Key']);
+    });
+    it(`${scene.name} does not reset from a superseded successful read while a newer review is pending`, async () => {
+      const pending: Array<(value: Response) => void> = [];
+      let holdReads = false;
+      const fetcher = vi.fn().mockImplementation((url: string, init: RequestInit) => {
+        if (init.method === 'POST') return Promise.resolve(failure('VERSION_CONFLICT'));
+        if (holdReads && !url.includes('/jobs/')) return new Promise<Response>(resolve => pending.push(resolve));
+        return Promise.resolve(response(getData(url)));
+      });
+      vi.stubGlobal('fetch', fetcher);
+      const wrapper = await scene.render();
+      await wrapper.find(scene.input).setValue('두 조회 중 원문 유지'); await wrapper.find(scene.form).trigger('submit'); await flushPromises();
+      const feedback = wrapper.findAllComponents(CommandFeedback).find(c => c.props('errorId') === scene.feedback)!;
+      const command = feedback.props('command');
+      holdReads = true;
+      feedback.vm.$emit('review'); feedback.vm.$emit('review'); await flushPromises();
+      expect(pending).toHaveLength(2);
+      pending[0](response(scene.name === 'intake' ? { items: [], next_cursor: null } : detail({ version: 4 })));
+      await flushPromises();
+      expect(command.hasPending).toBe(true);
+      pending[1](failure('SERVICE_UNAVAILABLE', 503)); await flushPromises();
+      expect(command.hasPending).toBe(true);
+      expect(fetcher.mock.calls.filter(c => c[1].method === 'POST')).toHaveLength(1);
+    });
+  }
+  it('keeps a rejected detail command when the required Job refresh fails after the Incident read succeeds', async () => {
+    let jobFails = false;
+    const fetcher = vi.fn().mockImplementation((url: string, init: RequestInit) => {
+      if (init.method === 'POST') return Promise.resolve(failure('VERSION_CONFLICT'));
+      if (jobFails && url.includes('/jobs/')) return Promise.reject(new TypeError('job read failed'));
+      return Promise.resolve(response(getData(url)));
+    });
+    vi.stubGlobal('fetch', fetcher);
+    const wrapper = await detailRender();
+    await wrapper.find('#reply-request-1').setValue('질문 답변 보존');
+    await wrapper.find('.question-card form').trigger('submit'); await flushPromises();
+    const feedback = wrapper.findAllComponents(CommandFeedback).find(c => c.props('errorId') === 'reply-error-request-1')!;
+    jobFails = true; feedback.vm.$emit('review'); await flushPromises();
+    expect(feedback.props('command').hasPending).toBe(true);
+    expect(wrapper.text()).toContain('Job 조회 실패');
+    jobFails = false; feedback.vm.$emit('review'); await flushPromises();
+    expect(feedback.props('command').hasPending).toBe(false);
+    expect(fetcher.mock.calls.filter(c => c[1].method === 'POST')).toHaveLength(1);
+  });
   it('retains intake text across network uncertainty and retries original request manually', async () => {
     const fetcher = vi.fn().mockImplementation((url: string, init: RequestInit) => init.method === 'POST' ? Promise.reject(new TypeError('offline')) : Promise.resolve(response({ items: [], next_cursor: null }))); vi.stubGlobal('fetch', fetcher); const wrapper = await listRender(); await wrapper.find('#intake-text').setValue('원문은 잃지 않는다'); await wrapper.find('form').trigger('submit'); await flushPromises(); expect((wrapper.find('#intake-text').element as HTMLTextAreaElement).value).toBe('원문은 잃지 않는다'); expect(wrapper.text()).toContain('같은 요청 결과 확인'); expect(wrapper.find('#intake-text').attributes('aria-describedby')).toBe('intake-error'); expect(wrapper.emitted('open')).toBeUndefined();
     const posts = () => fetcher.mock.calls.filter(c => c[1].method === 'POST'); expect(posts()).toHaveLength(1); const button = wrapper.findAll('button').find(b => b.text() === '같은 요청 결과 확인')!; await button.trigger('click'); await flushPromises(); expect(posts()).toHaveLength(2); expect(posts()[0][1].body).toBe(posts()[1][1].body); expect(posts()[0][1].headers['Idempotency-Key']).toBe(posts()[1][1].headers['Idempotency-Key']);

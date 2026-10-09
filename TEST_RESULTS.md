@@ -113,3 +113,25 @@ Chromium 설치 전 첫 시도는 실행 파일 부재로 실패했고 설치 �
 Compose 검증은 기존 `shiftlink-f0`와 분리한 `shiftlink-f0-f1` project/volume, API 18000·Web 15173을 사용했다. 새 시험 DB 컨테이너는 `shiftlink-f0-f1-tests`, 임의 schema는 검사가 정리했다. 기존 F0 DB/volume·브랜치는 변경하지 않았다. HTTP smoke Incident `efc393d1-2d47-4ace-ae35-1f4dbf3f80db`, Job `5fa96da3-2181-405a-b3e3-2c4f9f145c45`는 새 Compose DB에만 생성했다. 비밀값·쿠키는 기록하지 않았다.
 
 현재 코드에 남긴 후속 F1 리뷰 범위: 접수 재조회 실패 시 멱등키 보존, 최신 인계 선택 순서, 모델 문맥 크기 제한. 이번 보강에서 API base URL과 도구 잠금 순서 2건을 수정했으며 외부 리뷰 thread의 해결 상태를 자동 변경하지 않았다.
+
+
+## PR #6 리뷰 수정 직접 검증 — 2026-10-09
+
+대상은 기존 PR head `ec6c9f1`의 다섯 리뷰다. [수정 명세](docs/specs/f1-review-fixes/SPEC.md)는 기존 목표·완료 기록을 보존하는 별도 문서이며, 다음 결과는 새 Seal 완료 판정이 아닌 직접 실행 결과다. 다음 표는 F0 PR #9 통합 전 `59c4ce8`의 직접 검증이다. 이후 원격에 병합된 F0 `19b589c`를 보존해 통합했으며 최종 통합 검증은 후속 절에 기록한다.
+
+| 검사 | 결과 | 확인한 범위 |
+| --- | --- | --- |
+| `PYTHONPATH=apps/api .venv/bin/python -m pytest -q tests/backend` | 108 PASS | 기존 88개와 신규 20개. PostgreSQL 격리 schema의 실제 HTTP·worker·잠금·인계·문맥 예산 |
+| `npm --prefix apps/web run test` | 62 PASS | 기존 30개와 신규 32개. 불확실 요청·최신 조회·세션·API prefix·설정 거부 |
+| `npm --prefix apps/web run build` | PASS | Vue 타입 검사·Vite 빌드 |
+| `VITE_API_BASE_URL=/api/v1 PYTHONPATH=apps/api .venv/bin/python scripts/f1_browser.py` | 2 PASS | 실제 Chromium→Vue→HTTP→PostgreSQL. API/worker 재시작·지정 답변, 실제 저장 후 응답 유실·동일 receipt 재시도 |
+| `VITE_API_BASE_URL=/gateway/api/v1/ PYTHONPATH=apps/api .venv/bin/python scripts/f1_browser.py` | 2 PASS | 비기본 prefix·끝 슬래시 정규화·개발 프록시를 통한 동일 두 흐름 |
+| 실제 모델·전체 F2/F3/F4 제품 통합·배포·제출 | NOT_RUN | 모델 transport는 명시적 fake. 바이트 예산이 특정 모델의 context window 적합성을 보장하지 않음 |
+
+수정 전 신규 회귀 시험에서 tool 저장과 RUNNING Job 재시도 두 경로의 `40P01` 교착, 생성 시각/동일 시각 인계 요약 오선택, 조회 후 멱등 키 유실 및 API prefix 무시를 확인했다. 입력 예산 시험에서는 14개 메시지의 모델 context가 1,309,427 bytes로 상한을 넘었다. 기존 시험을 지우거나 기대 결과를 완화하지 않고 해당 경계를 보완했다.
+
+수정 후 잠금 시험은 실제 두 연결의 대기를 관측해 tool OK와 retry 409, 교착 없음 및 기다리는 동안 만료/재할당된 lease의 쓰기 거부를 확인한다. 인계 시험은 같은 사건의 복수 인계·동일 시각·삽입 역순·사업장/참여자 범위를 확인한다. 문맥 시험은 DB 원문 보존, 필수 trigger·질문/답변·Action·승인, 정정 연결의 전체 포함/생략, 생략 근거 인용 거부, 누적 도구 입력과 필수 정보 용량 초과를 확인한다.
+
+브라우저의 장애 주입은 실제 API의 202와 저장 결과를 받은 뒤 첫 응답만 끊는다. 이후 조회 실패/성공에서도 입력과 원 키를 유지하고, 재시도는 `Idempotent-Replayed: true`, 같은 사건·Job ID를 반환한다. fresh schema의 사건 수는 1만 증가하고 같은 원문 Message는 한 건이다. 실제 서버 성공 응답을 합성하지 않았다.
+
+harness가 생성 schema와 API/worker/Vue 프로세스를 정리했다. 원래 시험 컨테이너는 보존했다. 서버에는 기존 Starlette TestClient deprecation warning 1개가 있으며 실패는 없다. 검사 작성자는 Codex, 보증 범위는 local이다. 기본·비기본 경로 결과는 별도 실행이며 마지막 로컬 브라우저 산출물은 `apps/web/test-results/`, 프로세스 로그는 `.cache/f1-browser/`에 있다.

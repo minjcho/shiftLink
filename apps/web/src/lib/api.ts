@@ -1,10 +1,14 @@
 import type { Envelope } from './types';
+import { normalizeApiBasePath } from './api-base';
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public currentVersion: number | null = null, public details: unknown = null) { super(message); }
 }
 export class SessionChanged extends Error {}
 export class ApiClient {
-  constructor(private readonly baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1') {}
+  private readonly basePath: string;
+  constructor(baseUrl = import.meta.env.VITE_API_BASE_URL) {
+    this.basePath = normalizeApiBasePath(baseUrl);
+  }
   private epoch = 0;
   private pending = new Set<AbortController>();
   get sessionEpoch() { return this.epoch; }
@@ -14,7 +18,7 @@ export class ApiClient {
     const controller = new AbortController();
     this.pending.add(controller);
     try {
-      const response = await fetch(`${this.baseUrl.replace(/\/$/, '')}${path}`, {
+      const response = await fetch(`${this.basePath}${path}`, {
         method, credentials: 'include', signal: controller.signal,
         headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(key ? { 'Idempotency-Key': key } : {}) },
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -44,6 +48,7 @@ export class Command {
   error: unknown = null;
   get hasPending() { return this.snapshot !== null; }
   get canRetry() { return this.hasPending && this.error !== null && uncertain(this.error); }
+  get canReview() { return this.hasPending && !this.busy && this.error !== null && !uncertain(this.error); }
   reset() { if (this.busy) return; this.snapshot = null; this.error = null; }
   async send<T>(client: ApiClient, path?: string, body?: unknown): Promise<T | undefined> {
     if (this.busy) return;

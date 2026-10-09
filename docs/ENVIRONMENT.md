@@ -32,12 +32,13 @@ python3 scripts/setup_env.py
 | AGENT_MAX_MODEL_CALLS | 7 | 재시도·형식 보정 포함 run 전체 호출 한도 |
 | AGENT_MAX_TOOL_CALLS | 6 | run 전체 도구 실행 한도 |
 | AGENT_MAX_OUTPUT_TOKENS | 2000 | 모델 호출당 출력 토큰 상한. 실제 모델 지원 확인 |
+| AGENT_MAX_INPUT_BYTES | 262144 | 직렬화 UTF-8 입력 예산. 32768~1048576. 시스템·도구·출력 schema와 출력 여유를 포함해 호출 전에 검사하며 정확한 모델 token 수를 뜻하지 않음 |
 | SEARCH_MAX_CHUNKS | 5 | 검색 결과당 최대 chunk 수 |
 | SEARCH_MAX_CHUNK_CHARS | 2000 | 모델에 전달할 chunk별 본문 상한. 원문 저장은 자르지 않음 |
 | WORKER_POLL_INTERVAL_SECONDS | 2 | 미처리 DB Job 탐색 간격 |
 | JOB_LEASE_SECONDS | 90 | claim 유효시간. 초기값은 run deadline보다 길게 설정 |
 | JOB_MAX_ATTEMPTS | 3 | 최초 실행 포함 Job 전체 실행 시도 상한 |
-| VITE_API_BASE_URL | /api/v1 | 브라우저의 동일 출처 API 경로 |
+| VITE_API_BASE_URL | /api/v1 | 브라우저의 동일 출처 API prefix. 예: /gateway/api/v1. ASCII 비예약 문자 구간만 허용, 끝 슬래시 정규화. 외부 URL·루트·빈 구간·점 구간·percent encoding 거부. 빌드 시 적용 |
 | VITE_POLL_INTERVAL_MS | 2000 | 실행 중 UI polling 간격 |
 
 환경변수는 앱 구현 시 타입과 범위를 검사한다. 숫자는 양수여야 하며 `JOB_LEASE_SECONDS > AGENT_RUN_DEADLINE_SECONDS`가 아니면 시작 오류로 처리한다. live worker는 빈 API 키·모델을 허용하지 않는다. fake로 자동 전환하지 않는다. API는 모델 장애와 별개로 접수 원문을 저장할 수 있어야 한다.
@@ -46,7 +47,7 @@ python3 scripts/setup_env.py
 
 1. F1 설정 로더와 F0 Compose를 연결했다. 비밀값이 없는 공개 설정만 Web에 전달한다.
 2. API와 worker는 같은 DB·도메인 코드·마이그레이션을 사용한다. 마이그레이션 실행 주체는 하나로 둔다.
-3. Web 개발 서버와 배포 프록시는 `/api/v1`을 API로 전달한다. 환경에 따라 쿠키·Origin 검사를 실제 확인한다.
+3. Web 개발 서버는 `VITE_API_BASE_URL` prefix를 API의 `/api/v1`로 전달한다. 배포 프록시도 같은 매핑을 구성한다. 환경에 따라 쿠키·Origin 검사를 실제 확인한다.
 4. F1이 실제 계정의 모델 smoke test를 실행하고 `TEST_RESULTS.md`에 모델·소요 시간·결과를 남긴다. 모델 이름을 임의로 사용 가능하다고 가정하지 않는다.
 5. 검증한 설치·부팅·시험 명령은 README와 F0 안내, 실행 결과는 TEST_RESULTS에 기록한다.
 

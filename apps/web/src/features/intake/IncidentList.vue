@@ -22,7 +22,7 @@ const lastSuccess = ref<string | null>(null);
 let readGeneration = 0;
 const canSubmit = computed(() => equipmentId.value !== '' && text.value.trim() !== '' && !command.busy && !command.hasPending);
 watch(() => props.equipment, value => { if (!equipmentId.value && value.length) equipmentId.value = value[0].id; }, { immediate: true });
-async function refresh(cursor?: string) {
+async function refresh(cursor?: string): Promise<boolean> {
   const current = ++readGeneration;
   const query = new URLSearchParams({ scope: scope.value });
   if (status.value) query.set('status', status.value);
@@ -31,11 +31,15 @@ async function refresh(cursor?: string) {
   loading.value = true;
   try {
     const { data } = await api.request<Page<Incident>>(`/incidents?${query}`);
-    if (current !== readGeneration) return;
+    if (current !== readGeneration) return false;
     items.value = cursor && items.value ? [...items.value, ...data.items] : data.items;
     nextCursor.value = data.next_cursor;
     error.value = ''; lastSuccess.value = new Date().toISOString();
-  } catch (e) { if (!(e instanceof SessionChanged) && current === readGeneration) error.value = errorMessage(e); }
+    return true;
+  } catch (e) {
+    if (!(e instanceof SessionChanged) && current === readGeneration) error.value = errorMessage(e);
+    return false;
+  }
   finally { if (current === readGeneration) loading.value = false; }
 }
 watch([scope, status, filterEquipment], () => { items.value = null; nextCursor.value = null; lastSuccess.value = null; void refresh(); });
@@ -49,7 +53,11 @@ async function submit(retry = false) {
     emit('open', result.incident_id, `제보 저장됨 · 조사 대기 · ${result.display_id} · ${result.incident_id}`);
   } catch { /* CommandFeedback retains the original request and explains recovery. */ }
 }
-async function review() { await refresh(); command.reset(); }
+async function review() {
+  if (!command.canReview) return;
+  const refreshed = await refresh();
+  if (refreshed && command.canReview) command.reset();
+}
 </script>
 <template>
   <div class="intro"><p class="eyebrow">01 / 접수와 확인</p><h1>현장의 기록을<br>다음 확인으로 연결합니다.</h1><p>관찰한 내용은 원문 그대로 남고, 확인이 필요한 내용은 담당자에게 전달됩니다.</p></div>
