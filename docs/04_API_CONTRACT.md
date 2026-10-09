@@ -141,7 +141,7 @@ Incident 상세의 단일 `handover` 요약은 같은 사업장이고 현재 사
 }
 ```
 
-reply_to_request_id=null이면 추가 메시지다. 값이 있으면 같은 사건의 OPEN Request·지정 응답자·부모 버전을 확인하고 Message 저장과 Request ANSWERED를 한 트랜잭션으로 수행한다. response data는 `message_id, request_id|null, request_version|null, incident_id, incident_status, incident_version, job_id|null`다. 사건은 한 번만 +1이다.
+`reply_to_request_id`와 `correction_of`를 모두 non-null로 보내면 `422 VALIDATION_ERROR`다. Message·Request·Incident 버전·이벤트·Job·receipt를 생성하거나 바꾸지 않는다. reply_to_request_id=null이면 추가 메시지다. 값이 있으면 같은 사건의 OPEN Request·지정 응답자·부모 버전을 확인하고 Message 저장과 Request ANSWERED를 한 트랜잭션으로 수행한다. response data는 `message_id, request_id|null, request_version|null, incident_id, incident_status, incident_version, job_id|null`다. 사건은 한 번만 +1이다.
 
 새 일반 메시지도 상태명이 같아도 반드시 버전이 증가한다. PENDING_VERIFICATION에서는 INVESTIGATING으로 옮기고 새 조사 Job을 만든다. review_required 상태에서는 원문 기록은 허용하되 신규 작업·검증 준비가 차단됨을 표시한다. RESOLVED에 늦게 온 입력은 거부 입력 이벤트와 receipt로 보존하고 `409 INCIDENT_RESOLVED`와 새 제보 안내를 반환한다.
 
