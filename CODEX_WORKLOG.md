@@ -46,6 +46,28 @@
 - F1 구현과 최소 공통 기반, F1 실행 기록만 PR diff에 포함한다. F3 명세/대화 내보내기 도구는 공통 기준에 이미 있으므로 diff 밖이다. F3 구현/검사/실행 기록은 포함하지 않는다.
 - 분리 소스에서 서버88·화면30·빌드·실제 browser AC33을 다시 통과했다. 기존 Seal 완료 기록과 PR 소스의 직접 검증을 별도로 기재한다.
 
+## F3 Seal 실행 — 2026-10-09T12:53:10+09:00
+
+- 사용자 요청: “@Seal”, 작업 위치 결정: “jgoneit 브랜치에서 진행해줘”. 이 브랜치의 기존 18-AC SPEC을 변경하지 않고 실행했다.
+- F1/공통 기반 b0bcb54c41ee를 baseline으로 고정하고 ha start seq 1/input seq 2를 기록했다. 기존 다른 작업과 이전 worktree 문서를 보존했다.
+- 서버·화면·시험을 병렬 작성하고 root가 router/worker/상세 summary 연결과 민감한 ACK token의 상세 이벤트 노출 차단을 통합했다. 공유 enum/migration과 기존 F1 시험은 변경하지 않았다.
+- PostgreSQL·HTTP 직접 52개, 웹 빌드·시험 등록 통과. native Chromium 권한 실패가 이미 기록된 환경이어서 실제 F3 화면은 NOT_RUN이다.
+- 검사도 executor가 작성했다. 사람 검토 NOT_REVIEWED, 전체 live T8·배포·push NOT_RUN. Seal 최종 상태는 F3 bundle을 따른다.
+
+## F3 환경 재확인과 브라우저 검증 — 2026-10-09T13:07:51+09:00
+
+- 실제 사용자 요청 “다시 확인해줘 현재 세션에서”; 실제 예산 답변 “총 100회로 늘려 진행”. ha input52/unblock53/reopen54에 기록했다.
+- 이전 Chromium 권한 실패는 현재 환경에서 해소됐다. 실제 UI·HTTP·PostgreSQL 브라우저3개 조건이 통과했다.
+- 명시된 값/상태를 여러 요소 중 단일 요소로 특정하는 selector와 키보드 제출 준비 검사를 개선했다. 앱 성공을 만드는 대체 응답은 추가하지 않았다.
+- 코드 변화와 최종 검증 결과/완료 판정은 [F3 실행 기록](docs/specs/f3-handover/PROGRESS.md)을 따른다. 사람 검토·live 모델·배포·접수는 주장하지 않는다.
+
+## F3 전용 PR 준비 — 2026-10-09T13:22:06+09:00
+
+- 실제 요청: “F3작업에 대한 내용을 jgoneit에 pr올려줘”.
+- F1 PR #6의 head ec6c9f1에서 codex/f3-handover-pr를 구성했다. 대상 jgoneit은 아직 문서 기반이므로 F1 선행 의존성을 명시한다.
+- 검증된 F3 제품/시험을 원본 fd10159와 동일하게 가져오고 root문서는 F1 PR기록을 보존하며 F3 기록만 추가했다. F1 goal/시험/migration은 수정하지 않았다.
+- 새 브랜치에서 서버141·웹빌드·실제브라우저3개가 통과했다. 원본 Sealseq98과 새 PR소스의 직접 재검증을 구분한다.
+
 ## F0 → F1 기반 변경 — 2026-10-09
 
 - 사용자 요청: “그러면 F0를 F1으로 맞추는 쪽으로 진행을 해서 PR 을 업데이트 혹은 다시 PR 을 만들자”.
@@ -145,3 +167,13 @@
 - F2 production route의 Idempotency-Key 선언·명시 전달, 완료 result/evidence_refs 상한과 API 계약 갱신.
 - 누락 헤더·상한 초과 거부 및 쓰기 없음·경계 수용 회귀 추가. 전체 서버249 PASS, 생성 계약/공백 검사 PASS.
 - 기존 Worker Lock #10 및 F1 후속 #13/#14/#15 재사용, 패널/전주기 후속 #16 등록. 실제 모델·전체 브라우저 검증은 NOT_RUN.
+
+## 2026-10-09 F3 main 통합과 리뷰 처리
+
+사용자 요청: 병합된 #5 기준으로 F3 수정 방향을 별도 명세로 정리하고 치명적 리뷰는 즉시 수정, 나머지는 이슈·댓글로 추적.
+
+- 기존 F3 목표를 보존하고 `docs/specs/f3-main-integration-review/SPEC.md`를 작성했다. 공유 기반은 main c726425를 사용하며 source branch 이력을 재작성하지 않고 통합했다.
+- API/worker의 공통 production_ports에 세 기능을 연결했다. main의 Header·입력 상한·세션·worker singleton·공유 타입·상세 슬롯을 보존했다.
+- P1 승인 경계는 Approval 집합과 DB 재조회 값을 비교해 보완했다. 현재 main에서 해결된 네 리뷰는 보존하고 Evidence 동시 발급을 추가로 검증했다.
+- 직접 검증: 서버315, 공통Web70, 실제F3브라우저3, 타입·빌드·생성계약 PASS. 상세 결과·실행 범위는 TEST_RESULTS.
+- 비치명적 리뷰는 #17/#18/#19로 분리했다. F2 화면은 기존 #16을 유지한다. 별도 검토에서 추가 critical/high 소스 결함은 발견하지 못했다.

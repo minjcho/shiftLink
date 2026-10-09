@@ -145,9 +145,16 @@ def finalize(session_factory, identity: RunIdentity, execution, ports: FeaturePo
                 current = tx.get(Action, action_id)
                 if current is None or any(getattr(current, key) != value for key, value in before.items()):
                     raise DecisionRejected("The Action boundary changed an existing Action")
+            # Proposal creation/reuse cannot create or alter a person's approval.
+            # Refresh persisted values as an adapter may issue SQL behind the ORM.
+            current_approvals = {approval.id: approval for approval in tx.scalars(
+                select(Approval).where(Approval.action_id.in_(current_ids))
+                .execution_options(populate_existing=True))}
+            if set(current_approvals) != set(previous_approvals):
+                raise DecisionRejected("The Action boundary changed approval identities")
             for approval_id, before in previous_approvals.items():
-                current = tx.get(Approval, approval_id)
-                if current is None or any(getattr(current, key) != value for key, value in before.items()):
+                current = current_approvals[approval_id]
+                if any(getattr(current, key) != value for key, value in before.items()):
                     raise DecisionRejected("The Action boundary changed an existing approval")
             if result["created"] == (action.id in previous):
                 raise DecisionRejected("The Action boundary misreported creation versus reuse")

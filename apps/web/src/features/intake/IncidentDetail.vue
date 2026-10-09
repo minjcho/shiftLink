@@ -6,8 +6,9 @@ import { label, person, time } from '../../lib/presentation';
 import { usePolling } from '../../lib/polling';
 import CommandFeedback from '../../components/CommandFeedback.vue';
 import EvidencePanel from '../../components/EvidencePanel.vue';
+import HandoverSummary from '../handovers/HandoverSummary.vue';
 const props = defineProps<{ id: string; me: Me; equipment: Equipment[]; notice?: string }>();
-const emit = defineEmits<{ back: [] }>();
+const emit = defineEmits<{ back: []; openHandover: [id: string] }>();
 const detail = ref<IncidentDetail | null>(null);
 const job = ref<Job | null>(null);
 const readError = ref('');
@@ -104,7 +105,7 @@ async function retryJob(retry = false) {
         <section v-if="detail.actions.length" class="panel"><h2>연결된 작업</h2><article v-for="action in detail.actions" :key="action.id"><h3>{{ action.status }} · {{ action.id }}</h3><p>{{ action.scope }}</p><p>작업 담당자 {{ person(action.assignee_id) }}</p><p v-if="action.status === 'COMPLETED'">작업 결과 제출 완료 · 사건 상태는 별도로 확인합니다.</p></article></section>
         </slot>
         <slot name="resolution" :detail="detail" :session="me" :refresh="refreshSlot" />
-        <section v-if="detail.handover" class="panel"><h2>교대 인수 요약</h2><p>{{ detail.handover.ack_status === 'ACKNOWLEDGED' ? '인수 완료' : '인수 확인 대기' }}</p><p v-if="detail.handover.is_stale">새 업무 내용 · 인계 재확인 필요</p><p class="muted">인수 상태와 AI 분석 최신성은 별개입니다.</p></section>
+        <HandoverSummary :summary="detail.handover" :owner-id="detail.owner_id" :assignee-ids="detail.actions.map(action => action.assignee_id)" @open="emit('openHandover', $event)" />
         <EvidencePanel :evidence="detail.evidence" />
       </div>
     </div>

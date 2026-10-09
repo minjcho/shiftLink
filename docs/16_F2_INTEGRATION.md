@@ -7,13 +7,13 @@
 - 생산 API는 F1 `main.command → core.transactions.execute_command`를 사용한다. 세션·Origin·사업장 범위를 확인하고 같은 actor/site/key의 완료 응답을 먼저 재사용한다.
 - `features/actions/orm.py`가 F1 ORM Session과 기존 F2 순수 업무 판정을 연결한다. 별도 engine/commit/receipt를 만들지 않는다. `ActionApplication`과 독립 router는 기존 계약 시험용으로 보존하며 생산 앱에 중복 등록하지 않는다.
 - 신규 명령은 Incident → Action/Request를 ID 순으로 잠근다. 부모 버전은 `bump_incident`가 한 번만 증가시키고 F3 hook도 같은 transaction에서 실행한다.
-- API 기본 조립과 worker CLI는 `core.ports.production_ports()`를 공통 사용한다. 명시적으로 주입한 FeaturePorts는 시험이나 후속 F3 조립을 위해 그대로 보존한다.
+- API 기본 조립과 worker CLI는 `core.ports.production_ports()`를 공통 사용한다. 명시적으로 주입한 FeaturePorts는 시험이나 다른 명시적 조립을 위해 그대로 보존한다.
 
 ## F1 → F2 작업 확정
 
 `FeaturePorts.action_finalizer(tx, incident_id, run_id, input_version, draft_id, trigger_event_id)`는 `{action_id, created, action_version}`을 반환한다. ID는 경계에서 문자열/UUID로 변환하며 실제 ORM identity는 문자열이다.
 
-F1이 전체 사건 그래프와 Job lease를 잠그고 검사한 transaction 안에서 호출한다. F2는 그 Session으로 완전한 업무 context와 draft/run을 읽고 **Action 행만** staging한다. Incident 상태·버전·proposal event·인계 revision·Job/Run과 최종 lease 검사는 F1 소유다. 최종 검사 실패 시 Action도 rollback된다. `stage_proposal(action)`은 부모나 이벤트를 쓰지 않는다.
+F1이 전체 사건 그래프와 Job lease를 잠그고 검사한 transaction 안에서 호출한다. F2는 그 Session으로 완전한 업무 context와 draft/run을 읽고 **Action 행만** staging한다. Incident 상태·버전·proposal event·인계 revision·Job/Run과 최종 lease 검사는 F1 소유다. 최종 검사 실패 시 Action도 rollback된다. 생성·재사용 모두 후보 경계 호출 전후의 전체 Approval ID 집합과 DB 값을 검사한다. 승인 추가·삭제·교체·수정은 거부하며 F1/F2/F3 효과를 함께 rollback한다. `stage_proposal(action)`은 부모나 이벤트를 쓰지 않는다.
 
 F1은 기존 Action/Approval의 불변성과 호출 전후 전체 Action ID 집합을 검사한다. 반환된 한 작업 외 다른 slot의 작업을 함께 추가해도 거부한다. 같은 generation의 기존 Action은 재활성화하지 않고 동일 ID를 반환한다.
 
@@ -57,6 +57,6 @@ python scripts/export_contracts.py --check
 
 `test_actions_integration.py`는 실제 F1 finalizer와 F2 ORM·HTTP 경로를 시험한다. `test_actions_http_process.py`는 별도 uvicorn 프로세스·실제 loopback HTTP·PostgreSQL로 승인/착수/결과를 수행하고 프로세스를 재시작해 세션·동일 receipt·결과 보존을 확인한다. 모델 결과는 명시적인 합성 fixture이며 live AI 증거가 아니다.
 
-F2 전체 상태는 IN_PROGRESS다. 기존 #5의 작업 패널은 F1 상세 슬롯에 후속 연결한다. F3 실제 ACK 및 F4 RESOLVE/RETURN, 같은 사건의 전체 T8, 실제 모델 L1b는 별도 검증한다. 정확한 실행 결과는 TEST_RESULTS의 F2/F1 통합 절을 따른다.
+F2 전체 상태는 IN_PROGRESS다. 기존 #5의 작업 패널은 F1 상세 슬롯에 후속 연결한다. F3 실제 ACK와 이후 F2 승인·수행·결과·인계 revision은 서버 통합 시험에서 확인했다. F4 RESOLVE/RETURN, 같은 사건의 전체 화면 T8, 실제 모델 L1b는 별도 검증한다. 정확한 실행 결과는 TEST_RESULTS의 F2/F1 통합 절을 따른다.
 
 최종 검증 소스는 F1 7072e63 통합본이며 서버 243 PASS, 기존 Web 70 PASS·빌드·생성 계약 PASS다. F2 화면·사람 검증·live는 위 후속 범위를 유지한다.

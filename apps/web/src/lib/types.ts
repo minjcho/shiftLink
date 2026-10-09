@@ -1,3 +1,4 @@
+import type { HandoverSummaryData } from '../features/handovers/types';
 import type { SessionView, IncidentStatus, ActionStatus, JobStatus } from "./contracts";
 export interface Envelope<T> { data: T; meta?: { request_id?: string; dataset_id?: string; demo_mode?: boolean; build?: Build } }
 export interface Build { app_commit_sha: string | null; working_tree_dirty: boolean | null; agent_mode: string | null; search_mode: string | null }
@@ -12,6 +13,6 @@ export interface Analysis { run_id: string; base_version: number; is_stale: bool
 export interface Evidence { id: string; source_type: string; source_id: string; source_version: string; excerpt: string; equipment_id?: string; source_location?: string; applicability?: unknown; observed_at?: string | null; captured_at?: string }
 export interface Job { id: string; incident_id?: string; status: JobStatus; attempt?: number; latest_run_id?: string | null; latest_run_status?: string | null; mode?: string; started_at?: string | null; finished_at?: string | null; error_code?: string | null; retryable?: boolean; run_summary?: Record<string, unknown> }
 export interface ActionSummary { id: string; status: ActionStatus; assignee_id: string; scope?: string; is_required?: boolean }
-export interface IncidentDetail extends Incident { messages: Message[]; requests: RequestItem[]; actions: ActionSummary[]; analysis: Analysis | null; evidence: Evidence[]; latest_job: Job | null; recent_events: { id: string; type: string; occurred_at: string; actor_id: string | null; related_ids?: unknown; payload?: unknown }[]; handover: { ack_status?: string; is_stale?: boolean; handover_id?: string } | null }
+export interface IncidentDetail extends Incident { messages: Message[]; requests: RequestItem[]; actions: ActionSummary[]; analysis: Analysis | null; evidence: Evidence[]; latest_job: Job | null; recent_events: { id: string; type: string; occurred_at: string; actor_id: string | null; related_ids?: unknown; payload?: unknown }[]; handover: HandoverSummaryData | null }
 export interface IntakeResult { incident_id: string; display_id: string; message_id: string; job_id: string; status: string; version: number }
 export interface MessageResult { message_id: string; incident_id: string; incident_version: number; incident_status: string; job_id: string | null; request_id: string | null }
