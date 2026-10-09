@@ -135,3 +135,22 @@ Compose 검증은 기존 `shiftlink-f0`와 분리한 `shiftlink-f0-f1` project/v
 브라우저의 장애 주입은 실제 API의 202와 저장 결과를 받은 뒤 첫 응답만 끊는다. 이후 조회 실패/성공에서도 입력과 원 키를 유지하고, 재시도는 `Idempotent-Replayed: true`, 같은 사건·Job ID를 반환한다. fresh schema의 사건 수는 1만 증가하고 같은 원문 Message는 한 건이다. 실제 서버 성공 응답을 합성하지 않았다.
 
 harness가 생성 schema와 API/worker/Vue 프로세스를 정리했다. 원래 시험 컨테이너는 보존했다. 서버에는 기존 Starlette TestClient deprecation warning 1개가 있으며 실패는 없다. 검사 작성자는 Codex, 보증 범위는 local이다. 기본·비기본 경로 결과는 별도 실행이며 마지막 로컬 브라우저 산출물은 `apps/web/test-results/`, 프로세스 로그는 `.cache/f1-browser/`에 있다.
+
+
+### F0 PR #9 동시 통합 후 최종 재검증
+
+최초 push 전 원격 PR #6에 F0 PR #9(`19b589c`)가 병합되어 fast-forward push가 거부됐다. 이를 덮어쓰지 않고 리뷰 수정본을 새 원격 기반으로 통합했다. 실행 소스는 `8ef1dba`와 공개 슬롯 호환을 보완한 `34b154a`다. 서버는 `8ef1dba`에서 검사했으며 `34b154a`는 IncidentDetail의 슬롯 wrapper만 변경했다. UI·빌드 및 두 브라우저 경로는 그 wrapper를 포함한 소스로 확인했다. 이후 변경은 이 기록과 현재 요약뿐이다.
+
+| 최종 검사 | 결과 |
+| --- | --- |
+| `PYTHONPATH=apps/api .venv/bin/python -m pytest -q tests/backend` | 124 PASS (F0/F1 104 + 새 회귀 20) |
+| `PYTHONPATH=apps/api .venv/bin/python scripts/export_contracts.py --check` | PASS |
+| `npm --prefix apps/web run test` | 65 PASS (F0/F1 33 + 새 회귀 32) |
+| `npm --prefix apps/web run build` | PASS |
+| 기본 `/api/v1` 브라우저 | 2 PASS |
+| `/gateway/api/v1/` 브라우저 | 2 PASS |
+| Compose 설정 연결 | PASS. 비밀이 아닌 시험 값과 `--env-file /dev/null`로 config를 해석해 API·worker 양쪽에 AGENT_MAX_INPUT_BYTES=65536 전달 확인; 컨테이너 재기동 없음 |
+
+F0의 `lock_incident_graph → fence` 구현, 세션 교대 migration 0002, auth·모델, maintenance/live 단일 worker와 반려 사건의 조사 시작 제한을 보존했다. API client의 명시적 생성자 prefix 인자도 유지했다. F0의 공개 feature slot은 Promise<void> 계약을 유지하고 내부 재조회 결과 판단만 Promise<boolean>을 사용한다. 이 호환 보완 전 타입 검사에서 드러난 충돌을 고쳤으며 기존 시험의 기대값은 완화하지 않았다.
+
+이번 최종 결과도 local 검증이며 실제 모델·전체 F2/F3/F4 통합·새 Compose 기동·배포·제출은 수행하지 않았다. F0의 과거 Compose 실행 결과는 위 원래 기록으로 보존한다.

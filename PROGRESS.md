@@ -7,8 +7,8 @@
 | ID | 작업 | 초기 담당 | 상태 | 다음 확인 |
 |---|---|---|---|---|
 | DOC | 구현 문서·환경 예시·ignore 규칙 | Codex 작성, 팀 검토 대기 | DONE | 정적 검사 완료, 실제 담당 착수 확인 |
-| F0 | 공통 실행 기반·계약 | 재곤 통합, 민재 검토 | IN_PROGRESS | F1 기준 Compose·세션·worker·타입·화면 slot 보강, PR 검토 대기 |
-| F1 | 접수·AI 조사·질문과 답변 | 재곤 | [Seal 판정](docs/specs/f1-intake-investigation/PROGRESS.md) | 직접 서버 88개·화면 30개·실제 브라우저 및 빌드 PASS; live/타 기능 전체 통합은 별도 |
+| F0 | 공통 실행 기반·계약 | 재곤 통합, 민재 검토 | IN_PROGRESS | F1 기준 Compose·세션·worker·타입·화면 slot 보강, PR #9 반영 |
+| F1 | 접수·AI 조사·질문과 답변 | 재곤 | [Seal 판정](docs/specs/f1-intake-investigation/PROGRESS.md) | F0 통합·리뷰 보완 후 서버 124개·화면 65개·브라우저 기본2/변경 prefix2·빌드 PASS; live/타 기능 전체 통합은 별도 |
 | F2 | 작업 제안 확정·승인·착수·결과 | 민재 | IN_PROGRESS | PR #5 독립 구현, F1 기준 adapter·화면 연결 대기 |
 | F3 | 교대 인계·인수 | 재곤 | IN_PROGRESS | 별도 PR #7, 통합 대기 |
 | F4 | 최종 검증·해결 이력 | 민재 | IN_PROGRESS | 준비 검사만 PR #5, 사람 검증·case 후속 |
