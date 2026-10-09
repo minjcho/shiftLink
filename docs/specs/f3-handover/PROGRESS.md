@@ -2,13 +2,13 @@
 
 ## 현재
 
-- 확인 시각: 2026-10-09T13:15:28+09:00. 이 요약은 jgoneit 최종 완료 기록 seq98 시점의 판정이다.
-- record head: seq98 (fecf0a6308c5), complete(exit0), completion record seq98.
-- 검증 코드: jgoneit 31052bc98a1b, tree clean yes. 필수18개 조건 baseline/current와 모든 task가 충족됐다.
-- 실제 browser3개·API 재시작·DB 오류·응답 유실 재시도·세션 전환까지 통과했다. 입력만 합성이며 F3 성공 경계는 실제 HTTP/PostgreSQL/Vue다.
-- 총 검증 예산100회 중90회(이전48 + 새 창42)를 사용했다. 새 창620/14400초, 비용 미관측.
-- assurance local, 검사 작성자 executor. 전체 live T8·F2/F4 제품 통합·실모델·배포/접수는 미실행이다.
-- 병행 F1 변경을 보존했고 jgoneit 통합 후에도18개 조건을 다시 검증했다. 이 완료 이후 변경·게시·검토는 타임라인에 이어 기록한다.
+- 확인 시각: 2026-10-09T13:22:06+09:00. PR 제출용 source 상태와 원본 Seal 완료를 구분한다.
+- 보존한 record head: seq98(fecf0a6308c5). 원본 jgoneit31052bc의18/18 완료 기록이며 runs.jsonl은 변경하지 않았다.
+- PR source: codex/f3-handover-pr, F1 PR #6 head ec6c9f1 기반. 대상은 jgoneit이며 #6 선행 병합이 필요하다. 원본 jgoneit은 보존했다.
+- PR 실행 소스740ed5a의 apps/scripts/tests/의존성은 원본 fd10159와 동일하다. 직접 서버141개·Vue빌드·실제브라우저3개를 새 브랜치에서 재검증했다.
+- 새 PR commit의 ha 완료는 기록하지 않았으며 원본 completion을 새 SHA의 결과로 바꾸지 않는다. publication 이후 기록은 타임라인을 따른다.
+- F3 diff는 F1 head 대비33개 파일. F1 목표/기록/시험/migration은 수정하지 않았다. 입력만 합성이며 F3 성공 응답은 실제 API/DB다.
+- 전체liveT8·실모델·F2/F4 전체제품통합·배포/제출은 미실행이다. 검사 작성자는 executor, assurance local이다.
 
 ## Task 상태
 
@@ -76,6 +76,10 @@ F3 구현 commit316db0f의 격리 checkout에서 AC-2~15/18의 baseline15개와 
 ### 2026-10-09T13:15:28+09:00 · seq98 — 검증 · jgoneit 최종 완료
 
 검증 [통과]: 병행 F1 문서 기록을 보존한 jgoneit 31052bc에서 current18개(seq80~97)를 모두 통과했다. 유효 baseline은 유지됐다. ha done exit0·완료 seq98이며 out_of_scope/criterion_missing/task_open/dirty 이유가 없다. 총90/100회 안에서 마쳤다. F1 문서4개는 직접 수정하지 않았다.
+
+### 2026-10-09T13:22:06+09:00 · seq98 — 관측 · F3 PR 제출 소스
+
+사용자 요청으로 F1 PR #6의 ec6c9f1 위에 F3 전용 변경을 올린 브랜치를 구성했다. 원본 goal과실행기록을 보존했고 새 ha 기록을 만들지 않았다. root문서의F1 PR 준비/검증설명을유지했으며 F1별도goal은수정하지않았다. source740ed5a에서 서버141개·빌드·실제browser3개가직접통과했다. PR 선행 의존성과원본완료SHA를본문에명시한다.
 
 ## 계획 변경
 

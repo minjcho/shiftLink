@@ -102,3 +102,7 @@ ha check docs/specs/f3-handover EX-1
 ```
 
 최종 상태와 `ha done` 기록 여부는 [PROGRESS](specs/f3-handover/PROGRESS.md)에서 확인한다. 이 문서의 개별 PASS로 완료 판정을 대신하지 않는다. 실행자 작성 시험의 assurance는 `local`이며 live 모델 호출·전체 T8·배포·제출과 구분한다.
+
+## F3 PR 제출 소스
+
+이 브랜치는 F1 PR #6의 ec6c9f1 위에 F3 변경을 추가했고 대상은 jgoneit이다. 원본 fd10159와 앱·시험·의존성 내용은 동일하며 제출 소스에서 서버141개·웹빌드·실제 브라우저3개를 직접 재검증했다. F3의 원본 Seal18/18·완료seq98은31052bc의 기록으로 보존하며 새 PR commit의 완료로 바꾸지 않는다. F1 선행 병합이 필요하고, 원본 로컬 jgoneit과 다른 작업 이력은 보존했다.

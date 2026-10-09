@@ -114,3 +114,20 @@ S-02의 해결 상태·재ACK 필요를 명시했고 두 경계를 회귀 시험
 | AC-17 | 성공한 빈 목록·실제 DB 조회 실패/복구·ACK 차단·409 표시/input 보존·명시 재확인·실제 commit 뒤 응답 유실과 동일 key replay·세션 전환 재전송 없음 | PASS, ha seq57 |
 
 시험 선택자를 정확히 좁히고 키보드 제출의 버튼 준비를 기다리는 변경(eb5ad4e)이 있어, 최종 커밋의18개 조건 유효 판정은 F3 실행 bundle에서 다시 기록한다. 기존18개 baseline 무효 기록은 삭제하지 않았다. 유효 baseline/current, 최종 SHA·완료 기록은 [F3 PROGRESS](docs/specs/f3-handover/PROGRESS.md)를 따른다. 전체 live T8·F2/F4 제품 서비스·실제 모델·배포/제출은 NOT_RUN이다.
+
+## F3 전용 PR 브랜치 재검증 — 2026-10-09T13:22:06+09:00
+
+사용자 요청 “F3작업에 대한 내용을 jgoneit에 pr올려줘”에 따라 `codex/f3-handover-pr`를 F1 PR #6 head `ec6c9f1`에서 만들었다. 대상은 `jgoneit`이며 F1 선행 병합이 필요하다. F3 추가 diff는33개 파일로, F1 목표/실행기록·기존 시험·공유 migration은 바꾸지 않았다. F1 PR의 범위/검증 설명은 보존했다.
+
+시험 시 source commit은 `740ed5a`이며 apps/scripts/tests와 의존성 파일은 원본 `fd10159`와 byte단위로 동일하다. 이후 추가한 PR 안내 문서는 실행 소스와 시험을 바꾸지 않는다.
+
+| 검사 | 결과 | 범위 |
+| --- | --- | --- |
+| `PYTHONPATH=apps/api .venv/bin/python -m pytest -q tests/backend tests/handovers` | 141 PASS | F1 88 + F3 53, 실제 PostgreSQL·HTTP·경합 |
+| `npm --prefix apps/web run build` | PASS | Vue 타입 검사·Vite |
+| `.venv/bin/python scripts/f3_browser.py AC-1` | PASS | 실제 UI 생성·인수·API 재시작·같은 DB 재조회 |
+| `.venv/bin/python scripts/f3_browser.py AC-16` | PASS | 변경 재인수·과거 revision·고정 cutoff·추가 항목 |
+| `.venv/bin/python scripts/f3_browser.py AC-17` | PASS | 실제 DB 실패·409·응답 유실·동일 키 재시도·세션 전환 |
+| 원본 앱/시험 byte동일성·F1 diff범위·공백 검사 | PASS | 기존 F1 계약/시험/기록 보존, 비밀값·history제외 |
+
+Seal18/18·완료seq98은 원본 `31052bc`에서 얻은 기록이다. 새 PR SHA의 새로운 Seal 완료라고 주장하지 않으며 위 재검증은 별도의 직접 실행이다. 입력은 합성, 모델 호출은 없음, F3 경계는 실제 UI/HTTP/PostgreSQL이다. 전체 liveT8·F2/F4 제품 통합·배포·제출은 NOT_RUN이다. 검사 작성자는 executor, assurance local이다.
