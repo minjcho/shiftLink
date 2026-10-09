@@ -98,3 +98,10 @@
 2026-10-09 14:31 KST 이후 조회에서 F1 새 HEAD `7072e63`을 발견했다. F2 구현 checkpoint `6a723fa`를 보존하고 새 F1을 merge했다(`c027c54`). 코드 충돌은 없었고 CODEX_WORKLOG/PROGRESS/TEST_RESULTS의 내용 충돌은 양쪽 이력을 보존하고 현재 요약을 결합했다. 메시지 형태·검색 관련성·목록 페이지 보존을 포함한 새 시험을 재실행한다. 이슈 #11의 추가 Action 차단은 이 브랜치에서 구현했으며 GitHub 이슈 상태나 리뷰 스레드는 변경하지 않았다.
 
 최종 재검증: F1 7072e63을 포함해 서버 243 PASS(50.87초, 0 SKIP), 기존 Web 70 PASS·타입/빌드·생성 계약 PASS. 실제 F2 adapter의 generation 1 재사용 시험을 추가했다. 최초 233/65 기록은 이전 기반에서의 관측으로 보존한다. F4 구현 착수 전 서버 연결 게이트를 충족했다.
+
+## F4 최종 검증 구현 — 2026-10-09
+
+- 사용자 승인: F2-on-F1 위에서 F4 API·화면·case·검증과 별도 PR 진행.
+- 별도 `codex/f4-verification` worktree에서 작성하고 F2의 검증된 서버 커밋 ff1fb4e를 통합했다. 진행 중 F2 worktree·사용자 변경은 수정하지 않았다.
+- 공통 readiness/ORM/receipt 재사용, RESOLVE/RETURN 원자 저장, 불변 case와 과거 검색, 검증 UI/재시도/재조회, 실제 F3 export 및 브라우저 시험을 구현했다.
+- 실행 기준 978b12c. 서버 276/Web78/브라우저 기본2·prefix2·빌드·생성 계약 PASS. 상세 경계와 NOT_RUN은 TEST_RESULTS 및 docs/F4_IMPLEMENTATION.md. 실제 모델·배포·제출 작업 없음.

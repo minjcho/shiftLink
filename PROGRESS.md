@@ -11,7 +11,7 @@
 | F1 | 접수·AI 조사·질문과 답변 | 재곤 | [Seal 판정](docs/specs/f1-intake-investigation/PROGRESS.md) | 후속 리뷰 보완 후 서버 133개·화면 70개·브라우저 기본3/변경 prefix3·빌드 PASS; F2 추가 Action은 이슈 #11로 추적하며 이 브랜치에서 수정·회귀 검증; live/타 기능 전체 통합은 별도 |
 | F2 | 작업 제안 확정·승인·착수·결과 | 민재 | IN_PROGRESS | F1 기준 서버 연결·실제 HTTP/DB 검증 PASS. 작업 패널·F3/F4 전체 통합·live 후속 |
 | F3 | 교대 인계·인수 | 재곤 | IN_PROGRESS | 별도 PR #7, 통합 대기 |
-| F4 | 최종 검증·해결 이력 | 민재 | IN_PROGRESS | 준비 검사만 PR #5, 사람 검증·case 후속 |
+| F4 | 최종 검증·해결 이력 | 민재 | IN_PROGRESS | 사람 검증/RETURN/case·화면 구현과 DB/브라우저 검증 PASS. F3 실제 코드의 시험 조립 PASS, 제품 전체 통합·live 후속 |
 | F5 | 전주기 검증·제출 | 공동 | NOT_STARTED | T/L 실행·배포·접수 근거 |
 | Phase 2/3 | 판단 강화·확장 | 미배정 | NOT_STARTED | Phase 1 통과 전 착수하지 않음 |
 
@@ -47,3 +47,9 @@ F1 PR #6에 F0 보강 PR #9가 병합됐다. #8의 독립 schema·worker·화면
 `codex/f2-on-f1`에서 F1 #6 `c46d490`을 기준으로 #5의 서버 업무 로직·시험을 통합했다. Action-only 후보 staging, ORM adapter, 공유 receipt·세션·Origin, 공통 준비 검사와 API/worker 조립을 연결했다. 작업 중 새 F1 HEAD 7072e63을 발견해 통합하고 재검증했다. F2 화면 전체 완료를 선행 조건으로 두지 않고 승인·착수·결과·검증 대기 서버 경로를 먼저 검증했다.
 
 최신 통합 서버 243 PASS(실제 DB와 독립 계약 시험 구분은 TEST_RESULTS), 기존 Web 70 PASS·타입/빌드·생성 계약 검사 PASS. 별도 uvicorn 프로세스의 실제 HTTP와 재시작 후 세션·결과·receipt 보존을 확인했다. F2 전체 DONE은 아니며 F4 사람 검증·F3 인수·live·브라우저 작업 패널은 후속이다.
+
+## F4 구현·직접 검증 — 2026-10-09
+
+F2 `ff1fb4e` 위에 공통 준비 검사를 재사용한 RESOLVE/RETURN, 불변 case 조회, 검증/이력 슬롯을 연결했다. 현재 owner·버전·멱등성·반려 보존·원자성·늦은 입력을 검증했다. 서버 전체 276 PASS(실제 F3 export 통합 3개·F2 독립 DB 제약 13개 포함), Web 78 PASS, 타입/빌드 PASS, F4 브라우저 기본/변경 prefix 각 2 PASS.
+
+제품 기본 구성에는 F3가 아직 없다. 시험에서 PR #7의 실제 router/service/hook을 조립해 미완료 인수 → 기존 assignee 결과 → 새 owner 해결과 ACK/해결 양방향 경합을 확인했다. 브라우저 선행 F2/F3 조작은 HTTP, F1 제안은 결정론적 입력이며 전체 T8 화면/실제 모델 통과를 뜻하지 않는다. [F4 인계](docs/F4_IMPLEMENTATION.md)를 참고한다.

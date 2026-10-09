@@ -201,3 +201,20 @@ F0의 `lock_incident_graph → fence` 구현, 세션 교대 migration 0002, auth
 - 최종 `F2_TEST_DATABASE_URL=<시험 DB> /private/tmp/shiftlink-f0-on-f1/.venv/bin/python -m pytest -q`: **243 PASS, 0 SKIP**, 50.87초. F1/F0 133 + F2 독립 85 + 신규 실제 ORM/HTTP 25. 시험 수집 경로에 기존 F2 독립 시험도 등록했다.
 - 최신 F1 Web **70 PASS**, vue-tsc·Vite build PASS. 생성 계약·공백 검사 PASS. 최종 기반 확인 SHA `7072e63`. 실제 F2 패널의 브라우저 시험은 이 수에 포함되지 않는다.
 - 이슈 #11은 이 브랜치의 전체 Action 집합 검사와 정상 생성·재사용·초과 생성 거부/rollback 시험으로 대응했다. 원격 이슈 상태는 변경하지 않았다.
+
+## F4 사람 검증·해결 이력 직접 검증 — 2026-10-09
+
+- 실행 코드: `978b12cdd4ba602e32dc823f86619a26714e861e`와 동일한 작업 트리. 기반 F2 `ff1fb4e`/F1 `7072e63`. 문서 커밋은 별도다.
+- 환경: Python 3.13, PostgreSQL 17 시험 전용 서버의 매 시험 고유 schema, Node 25.9.0, Chromium, 실제 HTTP. 기존 업무 DB·Compose 서비스·volume은 변경하지 않았다.
+- F4 `tests/backend/test_resolution.py`: **30 PASS**. 실제 F1 finalizer→F2 승인/착수/완료 후 F4 해결/RETURN을 사용한다. T1c/T2b/T5/T6/T10의 owner·사업장·근거·질문·결과·사유·검토 차단, 같은 응답 replay, snapshot/receipt rollback, 두 해결 요청, 메시지/해결 양방향 경합, case pagination/범위, 검색 source_type, 재시작을 확인했다.
+- PR #7 `5486b8f10825ef63ebc608ee0f332c9b73629a88`의 실제 handovers 패키지 export를 시험에 조립한 `test_resolution_handover.py`: **3 PASS**. 미완료 ACK→같은 assignee 결과→새 owner 검증→단일 case, 이전 owner 차단, 과거 인계 revision 보존, 해결 뒤 늦은 ACK/replay, ACK/해결 양방향 경합. 제품 F3 통합 완료를 의미하지 않는다.
+- 최종 전체 `SHIFTLINK_F3_FEATURE_ROOT=<기록한 F3 export> F2_TEST_DATABASE_URL=<시험 DB> python -m pytest -q`: **276 PASS, 0 SKIP**, 76.13초. 기존 F1/F0 133 + F2 독립 85(메모리/독립 HTTP72 + stub FK 테이블 DB 제약13) + F2 실제 ORM/HTTP25 + F4 실제 ORM/HTTP30 + 실제 F3 연결3. 실제 모델 호출 없음.
+- 중간 기본 실행: **260 PASS, 13 SKIP**, 63.29초. F2_TEST_DATABASE_URL을 주지 않은 F2 독립 DB 제약13은 당시 SKIP이었다. F3 조건부 시험을 추가하기 전 실행이며 최종 276 결과와 구분한다.
+- `npm --prefix apps/web test`: **78 PASS**(기존70 + F4 화면8). 불확실한 요청/503/잘못된 성공 body의 동일 key 재전송, 성공 후 재조회 실패, 버전 충돌, 작성 중 polling, 사건/계정 전환 뒤 늦은 응답을 포함한다.
+- `npm --prefix apps/web run build`, `python scripts/export_contracts.py --check`, `git diff --check`: **PASS**. 기존 의존성·공유 생성 타입·migration은 변경하지 않았다.
+- `PYTHONPATH=apps/api SHIFTLINK_F3_FEATURE_ROOT=<export> python scripts/f4_browser.py`: 기본 `/api/v1` **2 PASS**(3.7초). `VITE_API_BASE_URL=/gateway/api/v1/` **2 PASS**(5.5초). prefix 실행은 해결 후 추가 인수 불필요 표시 보완까지 포함한다.
+- 브라우저 harness는 실제 migration 0001→0003, HTTP 제보/승인/착수/인수/완료, 명시적 결정론적 F1 tool/finalizer, 실제 F4 UI 해결/RETURN·case 읽기·API 프로세스 재시작을 사용한다. 선행 F2/F3 조작은 HTTP로 수행하며 질문/답변 전체 시나리오나 F2/F3 화면 E2E는 아니다.
+- 스크린샷 `apps/web/test-results/.../f4-resolved.png`, `f4-return.png`를 생성했다. 해결 화면을 직접 시각 확인해 case/검토 사유/작성자/시각/업무 이력을 확인했다. 산출물과 실행 log는 Git 제외 경로에 있다.
+- script는 자신이 시작한 API/Vue/Chromium과 고유 schema를 정리한다. F3 export는 제품 코드에 포함하지 않았다.
+- 잔존 경고: 기존 Starlette/httpx TestClient deprecation 1개, 브라우저 NO_COLOR/FORCE_COLOR 충돌 경고. 시험 실패 없음.
+- **NOT_RUN:** 모든 기능 화면과 실제 질문/답변을 포함한 전체 T8, 실제 모델 L1a/L1b/L2/L3, F3가 머지된 제품 기본 조립, 외부 배포·현장 사용·리허설·제출. worker guard 후속 이슈 #10은 이번 범위에서 변경하지 않았다.

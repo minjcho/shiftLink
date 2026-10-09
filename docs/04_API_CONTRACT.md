@@ -258,6 +258,14 @@ RETURN 역시 현재 owner·최신 버전·PENDING_VERIFICATION·사유를 요�
 
 GET `/cases?incident_id=...&cursor=...`는 해결 snapshot·검토자·시각·근거를 반환한다. 별도의 수정 API는 없다. 현재 사례가 과거 자료로 검색될 때 source_type=case를 유지한다.
 
+### F4 구현의 상세·case 응답 보완 — 2026-10-09
+
+상세 응답의 `resolution`은 `ready, unmet_requirements, checked_version, can_resolve, can_return, latest_verification, case`다. 사건 공유 잠금 내에서 상세 버전과 준비 조건을 함께 읽으며 명령은 현재 상태를 재검증한다. latest_verification은 검증 필드와 reviewer(id/display_name)를 제공한다. case는 저장 필드와 `source_type=case`, snapshot의 reviewer/resolved_at을 제공한다.
+
+case의 snapshot_json은 `schema_version=1, status=RESOLVED, incident, reviewer, verification, actions, approvals, messages, requests, evidence`다. 해결 당시 값을 보존하며 AI analysis/run 진단/인계 token은 제외한다. 종료 evidence_refs는 기본 completion_report와 추가 근거다. GET `/cases`는 선택 incident_id, cursor, limit(기본20, 1~100)을 받고 생성 시각/id 내림차순으로 조회한다. cursor의 사업장/incident 필터 변경은 422다. 기존 합성 과거 사례에는 incident/verification/reviewer가 없을 수 있다.
+
+검증 body는 extra=forbid, 양의 정수 expected_version, 1~20,000자의 공백 아닌 notes, 최대100개 evidence_refs를 받는다. notes 원문은 trim하지 않는다. 같은 receipt는 인증·사업장 범위를 확인한 뒤 owner/상태/버전 검사보다 먼저 재사용한다. 새 검증 요청이 이미 해결된 사건에 도착하면 현재 owner 권한을 확인하고 rejected_input과 409 receipt를 저장하며 해결 snapshot/업무 버전은 유지한다.
+
 ## 9. Job 재시도·근거·진단
 
 GET `/jobs/{id}`는 `id, incident_id, status, attempt, latest_run_id, latest_run_status, mode, started_at, finished_at, error_code, retryable`을 반환한다. 관련 사용자는 업무 상태·간단한 실패 안내만 읽는다. 현재 owner supervisor에게는 정제한 run 요약·도구명·결과 ID·버전·usage를 추가할 수 있다. 비밀·내부 추론·무관한 원문은 제공하지 않는다. 별도 관리 endpoint는 Phase 1 필수가 아니다.
