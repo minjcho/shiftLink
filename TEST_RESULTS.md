@@ -391,3 +391,7 @@ F3 인증 fixture는 변경 전의 유효 세션을 준비한 뒤 권한 변경�
 - `PYTHONPATH=apps/api python scripts/f4_browser.py`: 기본 prefix **2 PASS**(5.8초), `VITE_API_BASE_URL=/gateway/api/v1/` **2 PASS**(5.2초). 실제 F3 ACK/F2 완료 HTTP 선행, F4 UI 해결/RETURN, 해결된 인계 표시, API 재시작 후 불변 case 조회.
 - `PYTHONPATH=apps/api python scripts/f3_browser.py AC-1`: **1 PASS**(4.7초), 생성·인수 UI/HTTP/DB·재시작 확인. 근거 `.cache/f3-browser/1b3aec4dad2046f79bbc9a3dfaf4a229/result.json`. 첫 실행은 harness가 요구한 `.venv/bin/python` 부재로 앱 시험 시작 전 실패했고, 기존 시험 venv를 임시 연결한 후 통과했다. 임시 연결은 제거했다.
 - **NOT_RUN:** 실제 모델, 전체 질문/답변·F2/F3/F4 모든 화면을 포함한 T8, 배포·제출. F3 AC-16/17은 이번 실행에 포함하지 않음. F4 나머지 P2(헤더 명세, 해결 후 승인 표시, case 인수 이력)는 미수정이다.
+
+## Toss 스타일 UI 통합 — 2026-10-09
+
+기준 main `599fef3`, 브랜치 `feature/toss-ui-integrated`. 기존 기능 소스 위에 표시용 배너·아이콘·스타일과 App 탐색 배치를 변경했다. 사용자 요청으로 단위 테스트·타입 검사·빌드·브라우저 검증·실제 모델 호출은 **NOT_RUN**이다. 이전 기능 시험 PASS를 이번 UI의 검증 결과로 재사용하지 않는다.

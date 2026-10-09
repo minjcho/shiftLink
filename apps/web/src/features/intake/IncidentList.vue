@@ -4,6 +4,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { api, Command, errorMessage, SessionChanged } from '../../lib/api';
 import type { Equipment, Incident, IntakeResult, Page } from '../../lib/types';
 import UiIcon from '../../components/UiIcon.vue';
+import WorkflowBanner from '../../components/WorkflowBanner.vue';
 import { label, personName, time } from '../../lib/presentation';
 import { usePolling } from '../../lib/polling';
 import CommandFeedback from '../../components/CommandFeedback.vue';
@@ -83,7 +84,8 @@ async function review() {
 </script>
 <template>
   <div class="incident-workspace view-enter">
-    <header class="page-heading"><div><p class="eyebrow">{{ archive ? 'ARCHIVE / 완료된 사건' : 'INCIDENTS / 현장 업무' }}</p><h1>{{ archive ? '해결 이력' : '사건 작업대' }}<span class="heading-dot">.</span></h1><p class="muted">{{ archive ? '사람의 최종 확인으로 마무리된 사건을 다시 확인하세요.' : '확인이 필요한 기록부터, 다음 교대에 이어질 업무까지.' }}</p></div><button v-if="!archive" class="primary new-incident" @click="focusIntake"><UiIcon name="plus" />새 제보 작성</button></header>
+    <header class="page-heading"><div><p class="eyebrow">{{ archive ? 'ARCHIVE / 완료된 사건' : '우리 현장의 업무 공간' }}</p><h1>{{ archive ? '해결 이력' : '오늘의 현장, 한눈에' }}<span class="heading-dot">.</span></h1><p class="muted">{{ archive ? '사람의 최종 확인으로 마무리된 사건을 다시 확인하세요.' : '확인이 필요한 기록부터, 다음 교대에 이어질 업무까지.' }}</p></div><button v-if="!archive" class="primary new-incident" @click="focusIntake"><UiIcon name="plus" />새 제보 작성</button></header>
+    <WorkflowBanner v-if="!archive" @start="focusIntake" />
     <div class="list-layout" :class="{ 'archive-layout': archive }">
       <section aria-labelledby="list-heading" class="incidents-section">
         <div class="section-heading"><div class="list-section-title"><h2 id="list-heading">사건 목록</h2><span v-if="items !== null" class="result-count">{{ items.length }}{{ nextCursor ? '+' : '' }}</span></div><button class="text-button" :disabled="loading" @click="refresh()">새로고침</button></div>

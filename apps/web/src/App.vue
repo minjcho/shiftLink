@@ -4,6 +4,7 @@ import { api, errorMessage, SessionChanged } from './lib/api';
 import type { Build, Equipment, Me, Page } from './lib/types';
 import ConnectedActionPanel from './features/actions/ConnectedActionPanel.vue';
 import UiIcon from './components/UiIcon.vue';
+import AppIcon from './components/AppIcon.vue';
 import ResolutionPanel from './features/resolution/ResolutionPanel.vue';
 import IncidentList from './features/intake/IncidentList.vue';
 import IncidentDetail from './features/intake/IncidentDetail.vue';
@@ -55,20 +56,18 @@ onUnmounted(() => window.removeEventListener('popstate', pop));
   <a href="#main" class="skip-link">본문으로 건너뛰기</a>
   <div class="app-shell">
     <aside class="sidebar" aria-label="주 탐색">
-      <a class="brand" href="/incidents" @click.prevent="navigateWorkspace('incidents')"><span class="brand-symbol" aria-hidden="true">↗</span>ShiftLink<span class="brand-period">.</span></a>
-      <div class="workspace-label"><span class="site-monogram">S</span><div><strong>현장 운영 워크스페이스</strong><small>SHIFT OPERATIONS</small></div></div>
-      <p class="nav-label">WORKSPACE</p>
+      <a class="brand" href="/incidents" @click.prevent="navigateWorkspace('incidents')"><span class="brand-symbol"><AppIcon name="link" /></span>ShiftLink<span class="brand-period">.</span></a>
       <nav class="primary-nav">
         <a href="/incidents" :aria-current="workspace === 'incidents' && !handoverId ? 'page' : undefined" @click.prevent="navigateWorkspace('incidents')"><UiIcon name="inbox" />사건 작업대<span class="nav-arrow">↗</span></a>
         <a href="/incidents?view=handovers" :aria-current="workspace === 'handovers' || handoverId ? 'page' : undefined" @click.prevent="navigateWorkspace('handovers')"><UiIcon name="handover" />교대 인계</a>
         <a href="/incidents?view=resolved" :aria-current="workspace === 'resolved' ? 'page' : undefined" @click.prevent="navigateWorkspace('resolved')"><UiIcon name="archive" />해결 이력</a>
       </nav>
-      <div class="sidebar-bottom"><span class="environment-label"><span></span>합성 데모 환경</span><p>제보에서 최종 확인까지,<br>하나의 사건으로 이어집니다.</p><details class="sidebar-help"><summary>계정 전환 안내</summary><p>계정 전환 시 작성 중 입력과 대기 요청이 정리됩니다. 필요한 원문은 전환 전에 보관해 주세요.</p></details><span class="sidebar-version">ShiftLink / Phase 01</span></div>
+      <span class="environment-label"><span></span>합성 데모 자료</span>
     </aside>
     <div class="main-shell">
       <header class="workspace-header">
         <div class="breadcrumb"><span>워크스페이스</span><span aria-hidden="true">/</span><strong>{{ locationTitle }}</strong></div>
-        <div class="session-area"><div v-if="me" class="session-identity"><span class="avatar">{{ me.display_name.slice(0, 1) }}</span><div><strong>{{ me.display_name }}</strong><small>{{ me.role === 'supervisor' ? '책임자' : '작업자' }}</small></div></div>
+        <div class="session-area"><details class="account-help"><summary>계정 전환 안내</summary><p>계정 전환 시 작성 중 입력과 대기 요청이 정리됩니다. 필요한 원문은 전환 전에 보관해 주세요.</p></details><div v-if="me" class="session-identity"><span class="avatar">{{ me.display_name.slice(0, 1) }}</span><div><strong>{{ me.display_name }}</strong><small>{{ me.role === 'supervisor' ? '책임자' : '작업자' }}</small></div></div>
           <form @submit.prevent="switchSession()"><label for="account" class="sr-only">데모 계정 전환</label><div class="inline-control"><select id="account" v-model="account" :disabled="sessionBusy" required><option disabled value="">계정 선택</option><option v-for="[key,name] in accounts" :key="key" :value="key">{{ name }}</option></select><button type="submit" class="secondary" :disabled="sessionBusy || !account">{{ sessionBusy ? '전환 중…' : '전환' }}</button></div></form>
         </div>
       </header>
@@ -84,7 +83,7 @@ onUnmounted(() => window.removeEventListener('popstate', pop));
           <section v-else-if="workspace === 'handovers'" class="handover-workspace view-enter"><header class="page-heading"><div><p class="eyebrow">HANDOVER / 교대 책임 이전</p><h1>교대 인계</h1><p class="muted">남은 업무를 확인하고, 다음 책임자에게 연결하세요.</p></div><UiIcon name="handover" class="heading-icon" /></header><HandoverCreate :key="`handover-create-${epoch}`" :me="me" @created="navigateHandover" /><div class="handover-guide"><span class="section-number">인계 내용 다시 열기</span><h2>사건에서 인계 기록을 확인하세요.</h2><p>사건 상세의 교대 인수 요약 또는 전달받은 인계 링크에서 항목별 내용을 읽고 인수할 수 있습니다.</p><button class="secondary" @click="navigateWorkspace('incidents')">사건 작업대 열기 <span aria-hidden="true">↗</span></button></div></section>
           <IncidentList v-else :key="`${epoch}-${workspace}`" :equipment="equipment" :initial-status="workspace === 'resolved' ? 'RESOLVED' : ''" :archive="workspace === 'resolved'" @open="navigate"><template #handover><HandoverCreate v-if="workspace !== 'resolved'" :key="`handover-create-${epoch}`" :me="me" @created="navigateHandover" /></template></IncidentList>
         </template>
-        <section v-else class="welcome view-enter"><div class="welcome-mark" aria-hidden="true">↗</div><p class="eyebrow">SHIFT OPERATIONS</p><h1>업무를 시작할<br>계정을 선택하세요.</h1><p>담당 역할에 따라 제보, 작업 수행, 인수와 최종 확인을 진행합니다.</p><div class="account-options"><button v-for="[key,name] in accounts" :key="key" :disabled="sessionBusy" @click="chooseAccount(key)"><span>{{ name }}</span><UiIcon name="arrow" /></button></div><p v-if="sessionBusy" role="status">세션 전환 중…</p><button v-if="sessionError" class="secondary" @click="loadSession()">세션 다시 확인</button><small>합성 데모 자료로 진행하는 업무 흐름입니다.</small></section>
+        <section v-else class="welcome view-enter"><div class="welcome-mark"><AppIcon name="link" /></div><p class="eyebrow">다음 교대까지, 빈틈없이</p><h1>현장의 기록을<br>해결까지 연결해요</h1><p>담당 역할에 따라 제보, 작업 수행, 인수와 최종 확인을 진행합니다.</p><div class="account-options"><button v-for="[key,name] in accounts" :key="key" :disabled="sessionBusy" @click="chooseAccount(key)"><span>{{ name }}</span><UiIcon name="arrow" /></button></div><p v-if="sessionBusy" role="status">세션 전환 중…</p><button v-if="sessionError" class="secondary" @click="loadSession()">세션 다시 확인</button><small>합성 데모 자료로 진행하는 업무 흐름입니다.</small></section>
       </main>
       <footer class="app-footer"><span>ShiftLink <span aria-hidden="true">·</span> 사람의 확인으로 완성되는 업무</span><details v-if="build"><summary>실행 정보</summary><p>앱 {{ build.app_commit_sha ?? 'UNKNOWN' }} · 미커밋 변경 {{ build.working_tree_dirty === null ? 'UNKNOWN' : build.working_tree_dirty ? '있음' : '없음' }} · Agent {{ build.agent_mode ?? 'UNKNOWN' }} · 검색 {{ build.search_mode ?? 'UNKNOWN' }}</p><p>소프트웨어 시험용 합성 자료입니다. 설비 조작·재가동·안전을 승인하지 않습니다.</p></details></footer>
     </div>
