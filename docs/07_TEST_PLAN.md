@@ -202,3 +202,7 @@ F0 기반 → F1 접수와 F2 계약 시험 병렬 → live 질문/답변과 Act
 모델·프롬프트·검색 자료·schema 변경은 영향받는 live 사례를 다시 확인한다. 권한·잠금·버전·receipt 변경은 관련 T 하위 시험을 재실행한다. 개선 전 실패 증거와 개선 commit, 개선 후 결과를 연결하고 미실행 항목은 그대로 남긴다.
 
 예정 증거 위치는 `docs/evidence/<trial_id>/`다. 결과 Markdown에는 원문/DB snapshot/tool trace/녹화의 실제 경로를 연결한다. 인증 정보·비공개 추론·실제 개인정보는 넣지 않는다. 대화 원문 `docs/history/`는 Git 제외 기록이며 제출 테스트 증거와 구분한다. 공개 주장은 실행 표본과 합성 환경의 범위를 넘지 않는다.
+
+## F1 기준 F0 보강 검증 — 2026-10-09
+
+`tests/backend/test_foundation.py`는 세션 회전/재시작, enabled·site·교대 배정 재검사, 교대 변경 시 세션 유지, 단일 worker 배제·연결 유실·복구 모드, 최초 조사 커밋 기준 버전·lease, tool/사람 명령 잠금 순서, F1 0001→0002의 데이터 보존과 schema drift를 실제 PostgreSQL로 검사한다. F1 기존 시험과 함께 실행한다. 화면은 API prefix·겹친 계정 전환 차단·feature slot의 공유 refresh를 검사한다. 브라우저 AC33은 fake 모델과 실제 HTTP/DB를 사용한다. 명령과 실제 결과는 TEST_RESULTS의 F0/F1 절을 따른다.

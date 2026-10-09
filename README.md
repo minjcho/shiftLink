@@ -1,8 +1,19 @@
 # ShiftLink 개발 구현 문서
 
-v0.3 구현 문서 · 2026-10-09 · 상태: 문서 준비, 앱 구현 전
+v0.3 구현 계약 · 2026-10-09 · F1 기준 공통 실행 기반 보강·기능 통합 대기
 
-ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 찾고, 사람의 승인·작업 수행·교대 인수·최종 해결 확인까지 같은 사건으로 연결하는 서비스다. 이 저장소는 현재 개발 명세와 기록 양식을 담고 있다. 실행 앱이나 테스트 통과 결과를 포함하지 않는다.
+ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 찾고, 사람의 승인·작업 수행·교대 인수·최종 해결 확인까지 같은 사건으로 연결하는 서비스다. F1 실행 앱과 개발 명세를 포함한다. F1의 독립 구현·검증 상태는 [Seal 실행 기록](docs/specs/f1-intake-investigation/PROGRESS.md), 설치·실행·외부 기능 경계는 [F1 실행 안내](docs/F1_IMPLEMENTATION.md)를 따른다. 전체 기능 통합·실제 모델·배포 상태는 별도로 기록한다.
+
+## 로컬 실행
+
+```sh
+python3 scripts/setup_env.py
+docker compose up --build -d
+```
+
+Web `http://127.0.0.1:5173`, API `http://127.0.0.1:8000`. 기존 `.env`는 보존한다. F1의 ORM·migration·화면을 공통 기준으로 사용하며 독립 F0 PR #8은 이 통합에 직접 병합하지 않는다. [F0 실행·연결 안내](docs/17_F0_FOUNDATION.md)를 따른다.
+
+기본 `WORKER_MODE=maintenance`는 복구만 수행한다. 제보는 저장되고 조사는 대기한다. 실제 모델 key/model을 설정하고 `WORKER_MODE=live`로 worker를 재생성해야 AI가 조사한다. 실제 모델 검증과 F2/F3/F4 연결은 별도다.
 
 ## 먼저 읽을 문서
 
@@ -10,7 +21,7 @@ ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 
 2. [기능별 개발 계획](docs/08_BUILD_PLAN.md)에서 맡을 기능과 의존성을 선택한다.
 3. [도메인 계약](docs/03_DOMAIN_MODEL.md)과 [API 계약](docs/04_API_CONTRACT.md)을 함께 읽는다.
 4. [기능별 Codex 작업 지시](docs/12_CODEX_TASKS.md)와 [시험 계획](docs/07_TEST_PLAN.md)을 해당 기능의 완료 조건으로 사용한다.
-5. [.env.example](.env.example)을 참고하고 [환경 설정](docs/ENVIRONMENT.md)에 따라 로컬 `.env`를 준비한다. 설정을 읽는 앱 코드는 아직 구현 전이다.
+5. [.env.example](.env.example)을 참고하고 [환경 설정](docs/ENVIRONMENT.md)에 따라 로컬 `.env`를 준비한다. F1 앱은 프로세스 환경변수를 읽으며 `.env`를 자동으로 열지 않는다.
 
 ## 기능별 책임
 
@@ -46,6 +57,7 @@ ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 
 | [13 심사 근거](docs/13_JUDGING_EVIDENCE_MAP.md) | 주장·기능·시험·실제 제출 근거 대응 |
 | [14 도입과 가치](docs/14_PILOT_AND_VALUE.md) | 파일럿·현장 가설·비용과 시간 측정 |
 | [15 제출 절차](docs/15_SUBMISSION_RUNBOOK.md) | 버전 동결·접근 확인·실제 접수 확인 |
+| [17 F0 실행·연결](docs/17_F0_FOUNDATION.md) | F1 기반 Compose·세션·worker·migration·기능 연결 |
 | [아키텍처](docs/ARCHITECTURE.md) / [Mermaid](docs/ARCHITECTURE.mmd) | 구성요소·실행 경계·기능 간 연결 |
 | [환경 설정](docs/ENVIRONMENT.md) | 환경변수·비밀값·실행 전 점검 |
 | [진행](PROGRESS.md) / [시험 결과](TEST_RESULTS.md) | 현재 상태·실제 실행 결과 |

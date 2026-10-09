@@ -5,3 +5,16 @@
 .env
 .env.*
 !.env.example
+
+# Local builds, dependencies and isolated verification data
+.venv/
+.cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.egg-info/
