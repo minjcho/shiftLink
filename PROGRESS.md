@@ -10,8 +10,8 @@
 | F0 | 공통 실행 기반·계약 | 재곤 통합, 민재 검토 | IN_PROGRESS | F1 기준 Compose·세션·worker·타입·화면 slot 보강, PR #9 반영 |
 | F1 | 접수·AI 조사·질문과 답변 | 재곤 | [Seal 판정](docs/specs/f1-intake-investigation/PROGRESS.md) | 후속 리뷰 보완 후 서버 133개·화면 70개·브라우저 기본3/변경 prefix3·빌드 PASS; F2 추가 Action은 이슈 #11로 추적하며 이 브랜치에서 수정·회귀 검증; live/타 기능 전체 통합은 별도 |
 | F2 | 작업 제안 확정·승인·착수·결과 | 민재 | IN_PROGRESS | F1 기준 서버 연결·실제 HTTP/DB 검증 PASS. 작업 패널·F3/F4 전체 통합·live 후속 |
-| F3 | 교대 인계·인수 | 재곤 | IN_PROGRESS | main/F2 서버 연결 및 P1 수정 검증 PASS; PR #7 병합 전, P2 #17/#18/#19 후속 |
-| F4 | 최종 검증·해결 이력 | 민재 | IN_PROGRESS | 준비 검사만 PR #5, 사람 검증·case 후속 |
+| F3 | 교대 인계·인수 | 재곤 | IN_PROGRESS | PR #7 main 병합 완료; P2 #17/#18/#19 후속 |
+| F4 | 최종 검증·해결 이력 | 민재 | IN_PROGRESS | F3 main 통합·Job 재조회 보완. 서버348/Web81/F4 브라우저4/F3 AC-1 PASS. 나머지 P2·전체 T8·live 후속 |
 | F5 | 전주기 검증·제출 | 공동 | NOT_STARTED | T/L 실행·배포·접수 근거 |
 | Phase 2/3 | 판단 강화·확장 | 미배정 | NOT_STARTED | Phase 1 통과 전 착수하지 않음 |
 
@@ -69,6 +69,12 @@ F3 소스 브랜치는 `codex/f3-handover-pr`이며 최초 대상은 `jgoneit`�
 
 PR #5의 OpenAPI 필수 헤더 누락과 완료 입력 상한을 보완했다. 서버 249 PASS(기존243+회귀6), 생성 계약 검사 PASS. 사용자 요청에 따라 시간 제약으로 작업 패널 실제 연결·전체 전주기/live 검증은 [이슈 #16](https://github.com/minjcho/shiftLink/issues/16)으로 남긴다. Worker Lock #10 및 F1 #13/#14/#15는 기존 이슈를 유지한다. F2 전체 완료나 해당 결함 해결을 뜻하지 않는다.
 
+## F4 구현·직접 검증 — 2026-10-09
+
+F2 `ff1fb4e` 위에 공통 준비 검사를 재사용한 RESOLVE/RETURN, 불변 case 조회, 검증/이력 슬롯을 연결했다. 현재 owner·버전·멱등성·반려 보존·원자성·늦은 입력을 검증했다. 서버 전체 276 PASS(실제 F3 export 통합 3개·F2 독립 DB 제약 13개 포함), Web 78 PASS, 타입/빌드 PASS, F4 브라우저 기본/변경 prefix 각 2 PASS.
+
+제품 기본 구성에는 F3가 아직 없다. 시험에서 PR #7의 실제 router/service/hook을 조립해 미완료 인수 → 기존 assignee 결과 → 새 owner 해결과 ACK/해결 양방향 경합을 확인했다. 브라우저 선행 F2/F3 조작은 HTTP, F1 제안은 결정론적 입력이며 전체 T8 화면/실제 모델 통과를 뜻하지 않는다. [F4 인계](docs/F4_IMPLEMENTATION.md)를 참고한다.
+
 ## F3 main 통합·리뷰 보완 — 2026-10-09
 
 병합된 F2 #5를 포함한 main `c726425`를 F3 브랜치에 통합했다. API와 worker의 공통 `production_ports()`에 F2 작업 확정·검증 준비·F3 인계 갱신을 함께 연결하고 main의 인증·입력 상한·worker 제어·상세 슬롯을 보존했다. 후보 확정 경계의 Approval ID 집합·DB 값 보존을 강화해 기존 Action 재사용 중 승인 추가와 SQL 우회 변경을 차단했다.
@@ -76,3 +82,10 @@ PR #5의 OpenAPI 필수 헤더 누락과 완료 입력 상한을 보완했다. �
 [별도 후속 명세](docs/specs/f3-main-integration-review/SPEC.md)는 기존 F3 목표와 완료 기록을 보존한다. 직접 서버 315 PASS, Web 70 PASS·타입/빌드·생성 계약 PASS, 실제 F3 브라우저 3개 PASS다. 인수→새 owner 승인→기존 assignee 수행·결과→재인수는 실제 API/DB로 확인했다. 모델 입력은 합성이며 전체 F2 화면·F4 해결·live·배포·제출 완료가 아니다.
 
 리뷰 8건 중 P1 1건을 수정하고 main에서 해결된 4건을 보존·회귀 확인했다. 남은 P2는 [#17](https://github.com/minjcho/shiftLink/issues/17), [#18](https://github.com/minjcho/shiftLink/issues/18), [#19](https://github.com/minjcho/shiftLink/issues/19)로 추적한다. F2 패널과 전체 전주기는 기존 [#16](https://github.com/minjcho/shiftLink/issues/16)을 유지한다.
+
+
+## F4 F3-main 통합·MVP 리뷰 수정 — 2026-10-09
+
+F3 #7 병합 main `5edcef1`을 F4에 반영했다. 공통 API 등록과 App/상세 화면의 F3 인수·F4 검증 연결을 함께 보존하고 문서 충돌은 양쪽 실행 기록을 유지했다. F4 재검토는 사건 조회 성공을 기준으로 하며 Job 진단 실패를 별도로 표시한다. F1의 기존 재조회/명령 보존 조건은 유지한다.
+
+직접 서버348 PASS/0 SKIP, Web81 PASS, F4 브라우저 기본2·변경 prefix2 PASS, F3 AC-1 PASS, 타입/빌드·생성 계약 PASS. F3 인수→기존 assignee 결과→새 owner 해결, ACK/해결 경합, 해결 후 인계 이력, API 재시작을 병합된 제품 기본 구성으로 확인했다. 전체 질문/답변·모든 화면 T8·live·배포·제출은 NOT_RUN이다. 승인 이력 표시 등 남은 F4 P2 3건은 후속이며 F4 전체 완료로 표시하지 않는다.

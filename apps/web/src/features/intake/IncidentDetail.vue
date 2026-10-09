@@ -28,7 +28,7 @@ const stale = computed(() => !!detail.value?.analysis && detail.value.analysis.b
 const canRetryJob = computed(() => !!detail.value && props.me.role === 'supervisor' && props.me.user_id === detail.value.owner_id && detail.value.allowed_commands.includes('retry_job') && job.value?.status === 'FAILED' && job.value.retryable);
 function replyCommand(id: string) { return replyCommands[id] ?? (replyCommands[id] = new Command()); }
 function canAnswer(request: RequestItem) { return request.status === 'OPEN' && request.target_user_id === props.me.user_id && detail.value?.allowed_commands.includes('reply_request'); }
-async function refresh(): Promise<boolean> {
+async function refreshDetail(requireJob: boolean): Promise<boolean> {
   const current = ++sequence;
   loading.value = true;
   try {
@@ -41,7 +41,7 @@ async function refresh(): Promise<boolean> {
         if (current === sequence) { job.value = result.data; jobError.value = ''; }
       } catch (error) {
         if (current === sequence && !(error instanceof SessionChanged)) { job.value = data.latest_job; jobError.value = errorMessage(error); }
-        return false;
+        return !requireJob && current === sequence && !(error instanceof SessionChanged);
       }
     } else { job.value = null; jobError.value = ''; }
     return current === sequence;
@@ -51,7 +51,10 @@ async function refresh(): Promise<boolean> {
   }
   finally { if (current === sequence) loading.value = false; }
 }
-async function refreshSlot(): Promise<void> { await refresh(); }
+async function refresh(): Promise<boolean> { return refreshDetail(true); }
+async function refreshSlot(): Promise<void> { if (!await refresh()) throw new Error('상세 재조회에 실패했습니다.'); }
+// Final verification depends on Incident facts; diagnostic Job failures stay visible separately.
+async function refreshResolution(): Promise<void> { if (!await refreshDetail(false)) throw new Error('상세 재조회에 실패했습니다.'); }
 onMounted(() => void refresh());
 usePolling(refresh);
 async function sendMessage(requestId?: string, retry = false) {
@@ -104,7 +107,7 @@ async function retryJob(retry = false) {
         <slot name="actions" :detail="detail" :session="me" :refresh="refreshSlot">
         <section v-if="detail.actions.length" class="panel"><h2>연결된 작업</h2><article v-for="action in detail.actions" :key="action.id"><h3>{{ action.status }} · {{ action.id }}</h3><p>{{ action.scope }}</p><p>작업 담당자 {{ person(action.assignee_id) }}</p><p v-if="action.status === 'COMPLETED'">작업 결과 제출 완료 · 사건 상태는 별도로 확인합니다.</p></article></section>
         </slot>
-        <slot name="resolution" :detail="detail" :session="me" :refresh="refreshSlot" />
+        <slot name="resolution" :detail="detail" :session="me" :refresh="refreshResolution" />
         <HandoverSummary :summary="detail.handover" :owner-id="detail.owner_id" :assignee-ids="detail.actions.map(action => action.assignee_id)" @open="emit('openHandover', $event)" />
         <EvidencePanel :evidence="detail.evidence" />
       </div>

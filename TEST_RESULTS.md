@@ -329,6 +329,36 @@ Python 실행에는 Starlette의 httpx TestClient deprecation 경고 1개가 있
 - Web 수정 없음; 이번 Web 재실행 NOT_RUN(이전 공통70/F2 17 PASS 유지). 실제 모델·브라우저 전체 전주기·배포 NOT_RUN.
 - 시간 제약으로 미완료 범위는 이슈 #16, Worker Lock 등 기존 #10/#13/#14/#15에서 추적한다. 해당 이슈는 이 시험의 해결 범위가 아니다.
 
+## F4 사람 검증·해결 이력 직접 검증 — 2026-10-09
+
+- 실행 코드: `978b12cdd4ba602e32dc823f86619a26714e861e`와 동일한 작업 트리. 기반 F2 `ff1fb4e`/F1 `7072e63`. 문서 커밋은 별도다.
+- 환경: Python 3.13, PostgreSQL 17 시험 전용 서버의 매 시험 고유 schema, Node 25.9.0, Chromium, 실제 HTTP. 기존 업무 DB·Compose 서비스·volume은 변경하지 않았다.
+- F4 `tests/backend/test_resolution.py`: **30 PASS**. 실제 F1 finalizer→F2 승인/착수/완료 후 F4 해결/RETURN을 사용한다. T1c/T2b/T5/T6/T10의 owner·사업장·근거·질문·결과·사유·검토 차단, 같은 응답 replay, snapshot/receipt rollback, 두 해결 요청, 메시지/해결 양방향 경합, case pagination/범위, 검색 source_type, 재시작을 확인했다.
+- PR #7 `5486b8f10825ef63ebc608ee0f332c9b73629a88`의 실제 handovers 패키지 export를 시험에 조립한 `test_resolution_handover.py`: **3 PASS**. 미완료 ACK→같은 assignee 결과→새 owner 검증→단일 case, 이전 owner 차단, 과거 인계 revision 보존, 해결 뒤 늦은 ACK/replay, ACK/해결 양방향 경합. 제품 F3 통합 완료를 의미하지 않는다.
+- 최종 전체 `SHIFTLINK_F3_FEATURE_ROOT=<기록한 F3 export> F2_TEST_DATABASE_URL=<시험 DB> python -m pytest -q`: **276 PASS, 0 SKIP**, 76.13초. 기존 F1/F0 133 + F2 독립 85(메모리/독립 HTTP72 + stub FK 테이블 DB 제약13) + F2 실제 ORM/HTTP25 + F4 실제 ORM/HTTP30 + 실제 F3 연결3. 실제 모델 호출 없음.
+- 중간 기본 실행: **260 PASS, 13 SKIP**, 63.29초. F2_TEST_DATABASE_URL을 주지 않은 F2 독립 DB 제약13은 당시 SKIP이었다. F3 조건부 시험을 추가하기 전 실행이며 최종 276 결과와 구분한다.
+- `npm --prefix apps/web test`: **78 PASS**(기존70 + F4 화면8). 불확실한 요청/503/잘못된 성공 body의 동일 key 재전송, 성공 후 재조회 실패, 버전 충돌, 작성 중 polling, 사건/계정 전환 뒤 늦은 응답을 포함한다.
+- `npm --prefix apps/web run build`, `python scripts/export_contracts.py --check`, `git diff --check`: **PASS**. 기존 의존성·공유 생성 타입·migration은 변경하지 않았다.
+- `PYTHONPATH=apps/api SHIFTLINK_F3_FEATURE_ROOT=<export> python scripts/f4_browser.py`: 기본 `/api/v1` **2 PASS**(3.7초). `VITE_API_BASE_URL=/gateway/api/v1/` **2 PASS**(5.5초). prefix 실행은 해결 후 추가 인수 불필요 표시 보완까지 포함한다.
+- 브라우저 harness는 실제 migration 0001→0003, HTTP 제보/승인/착수/인수/완료, 명시적 결정론적 F1 tool/finalizer, 실제 F4 UI 해결/RETURN·case 읽기·API 프로세스 재시작을 사용한다. 선행 F2/F3 조작은 HTTP로 수행하며 질문/답변 전체 시나리오나 F2/F3 화면 E2E는 아니다.
+- 스크린샷 `apps/web/test-results/.../f4-resolved.png`, `f4-return.png`를 생성했다. 해결 화면을 직접 시각 확인해 case/검토 사유/작성자/시각/업무 이력을 확인했다. 산출물과 실행 log는 Git 제외 경로에 있다.
+- script는 자신이 시작한 API/Vue/Chromium과 고유 schema를 정리한다. F3 export는 제품 코드에 포함하지 않았다.
+- 잔존 경고: 기존 Starlette/httpx TestClient deprecation 1개, 브라우저 NO_COLOR/FORCE_COLOR 충돌 경고. 시험 실패 없음.
+- **NOT_RUN:** 모든 기능 화면과 실제 질문/답변을 포함한 전체 T8, 실제 모델 L1a/L1b/L2/L3, F3가 머지된 제품 기본 조립, 외부 배포·현장 사용·리허설·제출. worker guard 후속 이슈 #10은 이번 범위에서 변경하지 않았다.
+
+### F2 PR #5 최신 이력 통합 확인
+
+- `6b33370`에서 원격 minjcho `92cab3f`를 병합했다. 원래 F2 독립 패널/작업 이력을 보존했으며 문서 append 충돌은 양쪽 기록을 모두 유지했다.
+- `978b12c`와 비교해 서버·F4 화면·F4 시험/harness 소스의 변경 없음. 전체 시험을 불필요하게 반복하지 않고 추가된 F2 패널이 포함된 공통 vue-tsc/Vite 빌드를 실행해 PASS를 확인했다. 산출물 JS hash도 동일했다.
+- `git diff --check origin/minjcho...HEAD`: PASS. F2를 제외한 F4 기능 diff만 PR에 표시한다.
+
+## F4 최신 main 반영·리뷰 준비 — 2026-10-09
+
+- 기준: main c726425(F2 리뷰 보완 f053c58 포함)를 e551304에 병합. 충돌한 CODEX_WORKLOG/PROGRESS/TEST_RESULTS의 양쪽 기록을 보존했다. 공통 명령의 명시적 멱등 키 전달과 F2 완료 입력 상한을 유지한다.
+- `SHIFTLINK_F3_FEATURE_ROOT=<기존 5486b8f export> F2_TEST_DATABASE_URL=<시험 DB> python -m pytest -q`: **282 PASS, 0 SKIP**, 66.93초. 이전276 + main의 F2 리뷰 회귀6. 테스트 소스 기준 e551304. 실제 PostgreSQL·F3 원본 서비스 연결이며 모델 호출 없음.
+- `npm --prefix apps/web run build`, `python scripts/export_contracts.py --check`, `git diff --check origin/main...HEAD`: **PASS**. 기존 Starlette/httpx 경고1개.
+- 화면 소스는 변경하지 않아 기존 Web78/브라우저 기본2·prefix2 PASS 기록을 유지하며 이번에는 재실행하지 않았다. 실제 모델·전체 T8·F3 제품 통합·배포는 NOT_RUN을 유지한다.
+
 ## F3 main 통합·승인 경계 리뷰 — 2026-10-09
 
 기준: F3 `5486b8f`에 main `c726425`를 통합한 이번 소스. 원본 F3 완료 기록과 별도의 직접 검증이며 전체 F3 결함 해결·live·배포·제출 판정이 아니다. Python 3.14 / PostgreSQL 17.11 / 기존 web 의존성 환경. 각 DB 시험은 임의 schema만 생성·정리했다.
@@ -348,3 +378,16 @@ Python 실행에는 Starlette의 httpx TestClient deprecation 경고 1개가 있
 F3 인증 fixture는 변경 전의 유효 세션을 준비한 뒤 권한 변경을 가해 403/401을 검사한다. 로그인 단계의 교대 미배정 거부와 현재 사업장 검사 자체는 변경하지 않았다. 기존 최신 인계 선택·목록 페이지·불확실한 명령 복구·잠금 순서를 보존했다.
 
 검증 한계: 모델 결정은 합성 입력이다. F2 작업 패널·전체 브라우저 T8·F4 사람 검증·실제 모델·배포·제출은 NOT_RUN. P2 #17/#18/#19는 미수정이며 해당 재현을 PASS로 계산하지 않는다. 과거 동일 기능 시험과 이번 결과를 합산해 새 성능·안전성 주장으로 사용하지 않는다.
+
+
+## F4 F3-main 병합·Job 조회 회귀 — 2026-10-09
+
+기준: F4 `6614d8d`에 F3 포함 main `5edcef1`을 병합한 소스. Python3.13, 실제 시험 PostgreSQL의 고유 schema. F3 export 없이 기본 production_ports/routes를 사용했다.
+
+- 신규 Web 회귀3: 수정 전 Job503 후 재검토/저장 성공 재조회2 FAIL, Incident 조회 실패 차단1 PASS. 수정 후3 PASS. F1의 Job 조회 실패 시 거부 명령 보존 시험도 PASS.
+- `F2_TEST_DATABASE_URL=<시험 DB> python -m pytest -q tests/backend tests/handovers apps/api/tests/actions`: **348 PASS, 0 SKIP**, 99.92초. F3 기본 구성의 인수→완료→새 owner 해결 및 양방향 ACK/해결 경합 포함. 기존 Starlette/httpx 경고와 Pydantic alias 경고2개.
+- `npm --prefix apps/web test`: **81 PASS**. 공통 Web70 + F4 기존8 + 신규3. 별도 F2 독립 화면17은 이번 범위에서 재실행하지 않았다.
+- `npm --prefix apps/web run build`, `python scripts/export_contracts.py --check`, staged/unstaged diff check: **PASS**.
+- `PYTHONPATH=apps/api python scripts/f4_browser.py`: 기본 prefix **2 PASS**(5.8초), `VITE_API_BASE_URL=/gateway/api/v1/` **2 PASS**(5.2초). 실제 F3 ACK/F2 완료 HTTP 선행, F4 UI 해결/RETURN, 해결된 인계 표시, API 재시작 후 불변 case 조회.
+- `PYTHONPATH=apps/api python scripts/f3_browser.py AC-1`: **1 PASS**(4.7초), 생성·인수 UI/HTTP/DB·재시작 확인. 근거 `.cache/f3-browser/1b3aec4dad2046f79bbc9a3dfaf4a229/result.json`. 첫 실행은 harness가 요구한 `.venv/bin/python` 부재로 앱 시험 시작 전 실패했고, 기존 시험 venv를 임시 연결한 후 통과했다. 임시 연결은 제거했다.
+- **NOT_RUN:** 실제 모델, 전체 질문/답변·F2/F3/F4 모든 화면을 포함한 T8, 배포·제출. F3 AC-16/17은 이번 실행에 포함하지 않음. F4 나머지 P2(헤더 명세, 해결 후 승인 표시, case 인수 이력)는 미수정이다.

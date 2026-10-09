@@ -15,7 +15,7 @@ from app.core.config import Settings
 from app.core.contracts import IncidentStatus
 from app.core.db import create_session_factory
 from app.core.errors import DomainError, not_found
-from app.core.models import Equipment, Evidence, Job, Shift
+from app.core.models import Equipment, Evidence, Incident, Job, Shift
 from app.core.ports import production_ports
 from app.features.actions.commands import ApprovalCommand, CompletionCommand, StartCommand
 from app.features.actions.responses import ApprovalResult, CompletionResult, StartResult, SuccessEnvelope
@@ -23,6 +23,8 @@ from app.features.actions import orm as actions
 from app.core.transactions import execute_command
 from app.features.intake.schemas import DemoSessionBody, MessageBody, ReportBody, RetryBody
 from app.features.intake import service
+from app.features.resolution import service as resolution
+from app.features.resolution.router import register_routes as register_resolution_routes
 
 
 def with_meta(request, body):
@@ -145,8 +147,15 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
     @app.get("/api/v1/incidents/{incident_id}")
     def incident(incident_id: UUID, request: HttpRequest):
         principal = principal_from_request(request)
-        with app.state.session_factory() as tx:
-            return with_meta(request, {"data": service.detail(tx, principal, str(incident_id), settings)})
+        with app.state.session_factory.begin() as tx:
+            # A coherent displayed version + readiness; all business writers lock Incident first.
+            row = tx.scalar(select(Incident).where(Incident.id == str(incident_id),
+                Incident.site_id == principal.site_id).with_for_update(read=True))
+            if row is None:
+                raise not_found()
+            data = service.detail(tx, principal, str(incident_id), settings)
+            data["resolution"] = resolution.detail(tx, principal, row, app.state.ports)
+            return with_meta(request, {"data": data})
 
     @app.get("/api/v1/jobs/{job_id}")
     def job(job_id: UUID, request: HttpRequest):
@@ -193,6 +202,7 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
                  idempotency_key: Annotated[str, Header(alias="Idempotency-Key")]):
         return action_command(action_id, request, body, idempotency_key)
 
+    register_resolution_routes(app, command, with_meta)
     from app.features.handovers.router import register as register_handovers
     register_handovers(app, command=command, with_meta=with_meta)
     return app

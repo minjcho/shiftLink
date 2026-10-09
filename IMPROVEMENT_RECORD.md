@@ -47,3 +47,10 @@ F2의 기존 stage_proposal 계약은 Action/event·Incident 상태를 저장하
 - 수정: TypeScript를 5.9.3으로 고정하고 lockfile 갱신. 설치 당시 Node 25 engine 경고가 있어 시험은 지원되는 Node 24.21.0으로 실행했다.
 - 후속 타입 오류: `crypto.randomUUID()` 기본값에서 추론된 UUID template literal이 시험용 string key를 거부했다. 명시적인 `key: string`을 선언했다.
 - 재검증: Vue 타입 검사 PASS. 제품 기능의 성능 개선이나 운영 검증으로 계산하지 않는다.
+
+## F4 연결 검토 — 2026-10-09
+
+- 문제: F1 사례 검색은 snapshot 최상위 status=RESOLVED를 요구한다. 초기 F4 구현은 incident.status에만 기록해 생성 사례가 검색에서 빠질 수 있었다.
+- 수정: 불변 snapshot에 기존 검색 계약의 status를 보존했다. 실제 F4 해결 뒤 다른 사건의 실제 search_similar_incidents 도구가 동일 case ID와 source_type=case를 반환하는 회귀 PASS.
+- 화면 확인: 해결로 새 인계 revision이 생기면 기존 요약이 인수 대기로 보였다. 사건 RESOLVED에서는 추가 ACK 불필요를 표시하고 실제 브라우저로 확인했다. F3 업무 상태나 ACK 구현은 변경하지 않았다.
+- 복구: 잘못된 200 응답도 저장 여부 불확실로 처리해 동일 검증 body/key를 유지한다. 네트워크/503/잘못된 성공 응답, 조회 실패, 버전 변경, 계정/사건 전환 회귀 PASS.

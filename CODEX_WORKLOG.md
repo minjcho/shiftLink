@@ -168,6 +168,17 @@
 - 누락 헤더·상한 초과 거부 및 쓰기 없음·경계 수용 회귀 추가. 전체 서버249 PASS, 생성 계약/공백 검사 PASS.
 - 기존 Worker Lock #10 및 F1 후속 #13/#14/#15 재사용, 패널/전주기 후속 #16 등록. 실제 모델·전체 브라우저 검증은 NOT_RUN.
 
+## F4 최종 검증 구현 — 2026-10-09
+
+- 사용자 승인: F2-on-F1 위에서 F4 API·화면·case·검증과 별도 PR 진행.
+- 별도 `codex/f4-verification` worktree에서 작성하고 F2의 검증된 서버 커밋 ff1fb4e를 통합했다. 진행 중 F2 worktree·사용자 변경은 수정하지 않았다.
+- 공통 readiness/ORM/receipt 재사용, RESOLVE/RETURN 원자 저장, 불변 case와 과거 검색, 검증 UI/재시도/재조회, 실제 F3 export 및 브라우저 시험을 구현했다.
+- 실행 기준 978b12c. 서버 276/Web78/브라우저 기본2·prefix2·빌드·생성 계약 PASS. 상세 경계와 NOT_RUN은 TEST_RESULTS 및 docs/F4_IMPLEMENTATION.md. 실제 모델·배포·제출 작업 없음.
+
+## F4 리뷰 준비 — 2026-10-09
+
+사용자 요청 “그러면 리뷰 받자”에 따라 최신 main c726425를 F4에 병합하고 문서3개 충돌을 기록 보존 방식으로 정리했다. 서버282 PASS, 빌드·생성 타입·공백 검사 PASS. F2 #5가 이미 머지되어 PR #12 대상을 main으로 바꾸고 Ready for review 전환을 통해 기존 Codex 자동 리뷰를 요청하는 단계다. F3 코드·원격 브랜치는 수정하지 않았다.
+
 ## 2026-10-09 F3 main 통합과 리뷰 처리
 
 사용자 요청: 병합된 #5 기준으로 F3 수정 방향을 별도 명세로 정리하고 치명적 리뷰는 즉시 수정, 나머지는 이슈·댓글로 추적.
@@ -177,3 +188,12 @@
 - P1 승인 경계는 Approval 집합과 DB 재조회 값을 비교해 보완했다. 현재 main에서 해결된 네 리뷰는 보존하고 Evidence 동시 발급을 추가로 검증했다.
 - 직접 검증: 서버315, 공통Web70, 실제F3브라우저3, 타입·빌드·생성계약 PASS. 상세 결과·실행 범위는 TEST_RESULTS.
 - 비치명적 리뷰는 #17/#18/#19로 분리했다. F2 화면은 기존 #16을 유지한다. 별도 검토에서 추가 critical/high 소스 결함은 발견하지 못했다.
+
+
+## F4 최신 F3 main 통합·리뷰 최소 수정 — 2026-10-09
+
+사용자 “ㄱㄱ” 승인에 따라 F4 worktree에서 main `5edcef1`을 병합했다. 충돌7개(코드3·문서4)를 양쪽 기능/기록 보존으로 해결했다. main의 F3 production_ports/worker/승인 경계 보완을 유지하고 F3 route/화면 이동과 F4 route/resolution slot을 함께 연결했다.
+
+F4 슬롯의 Incident 재조회 성공을 Job 진단 실패와 분리했다. F1 명령 재검토의 기존 조건과 세션/조회 순서 검사는 유지했다. 실제 IncidentDetail+ResolutionPanel 회귀3개로 수정 전2실패를 재현하고 수정 후 통과했다. F3가 병합되어 선택 export/중복 route 주입을 제거하고 기본 제품 구성으로 통합 시험과 브라우저 harness를 갱신했다.
+
+서버348/Web81/F4 브라우저 기본2·prefix2/F3 AC-1, 타입/빌드/생성 계약/diff 검사 PASS. 실행 한계 및 남은 P2는 TEST_RESULTS와 F4_IMPLEMENTATION에 기록했다. 사용자 작업트리 변경·main 직접 병합·배포는 수행하지 않는다.

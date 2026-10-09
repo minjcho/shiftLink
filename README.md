@@ -13,7 +13,7 @@ docker compose up --build -d
 
 Web `http://127.0.0.1:5173`, API `http://127.0.0.1:8000`. 기존 `.env`는 보존한다. F1의 ORM·migration·화면을 공통 기준으로 사용하며 독립 F0 PR #8은 이 통합에 직접 병합하지 않는다. [F0 실행·연결 안내](docs/17_F0_FOUNDATION.md)를 따른다.
 
-기본 `WORKER_MODE=maintenance`는 복구만 수행한다. 제보는 저장되고 조사는 대기한다. 실제 모델 key/model을 설정하고 `WORKER_MODE=live`로 worker를 재생성해야 AI가 조사한다. F2 서버는 승인·착수·결과와 공통 검증 준비까지 연결했다. [F2 연결 안내](docs/16_F2_INTEGRATION.md)를 참고한다. F3 인수는 같은 기본 구성에 연결했다. [이번 통합·리뷰 명세](docs/specs/f3-main-integration-review/SPEC.md)를 따른다. F2 작업 패널은 [#16](https://github.com/minjcho/shiftLink/issues/16), F3의 비치명적 후속은 [#17](https://github.com/minjcho/shiftLink/issues/17)·[#18](https://github.com/minjcho/shiftLink/issues/18)·[#19](https://github.com/minjcho/shiftLink/issues/19)로 추적한다. F4 사람 검증·실제 모델·전체 화면 전주기는 후속이다.
+기본 `WORKER_MODE=maintenance`는 복구만 수행한다. 제보는 저장되고 조사는 대기한다. 실제 모델 key/model을 설정하고 `WORKER_MODE=live`로 worker를 재생성해야 AI가 조사한다. F2 서버는 승인·착수·결과와 공통 검증 준비까지 연결했다. [F2 연결 안내](docs/16_F2_INTEGRATION.md)를 참고한다. F3 인수는 같은 기본 구성에 연결했다. [이번 통합·리뷰 명세](docs/specs/f3-main-integration-review/SPEC.md)를 따른다. F2 작업 패널은 [#16](https://github.com/minjcho/shiftLink/issues/16), F3의 비치명적 후속은 [#17](https://github.com/minjcho/shiftLink/issues/17)·[#18](https://github.com/minjcho/shiftLink/issues/18)·[#19](https://github.com/minjcho/shiftLink/issues/19)로 추적한다. F4 사람의 해결 확인·반려·해결 이력 화면/API도 연결했다. [F4 실행·검증 안내](docs/F4_IMPLEMENTATION.md)를 따른다. 실제 모델·전체 화면 전주기는 후속이다.
 
 ## 먼저 읽을 문서
 
