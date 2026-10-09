@@ -50,7 +50,7 @@ async function refresh(): Promise<boolean> {
   }
   finally { if (current === sequence) loading.value = false; }
 }
-async function refreshSlot(): Promise<void> { await refresh(); }
+async function refreshSlot(): Promise<void> { if (!await refresh()) throw new Error('상세 재조회에 실패했습니다.'); }
 onMounted(() => void refresh());
 usePolling(refresh);
 async function sendMessage(requestId?: string, retry = false) {
