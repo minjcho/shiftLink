@@ -2,10 +2,11 @@
 
 v0.3 구현 문서 · 2026-10-09
 
-이 문서는 앞으로 구현할 설정 로더의 계약이다. 현재 `.env.example`과 이 문서가 존재하며 앱·Compose·설정 로더는 구현 전이다. 아래 복사는 환경 파일 준비만 수행하고 앱을 실행하지 않는다.
+F0 설정 로더·Compose·마이그레이션·기본 seed를 구현했다. 로컬 실행은 [F0 실행 문서](17_F0_FOUNDATION.md)를 따른다. 생성기는 세션/DB 비밀값을 무작위로 만들며 기존 파일을 덮어쓰지 않는다.
 
 ```sh
-cp -n .env.example .env
+python3 scripts/setup_env.py
+docker compose up --build -d
 ```
 
 기존 `.env`가 있으면 덮어쓰지 말고 누락된 키만 로컬에서 보완한다. API 키·세션 비밀값은 `.env`에만 채우고 로그·작업 기록·브라우저 번들에 노출하지 않는다.
@@ -15,6 +16,7 @@ cp -n .env.example .env
 | 변수 | 예시·기본값 | 읽을 구성요소와 검증 |
 |---|---|---|
 | APP_ENV | development | API/worker. development 또는 production |
+| WEB_PORT | 5173 | 로컬 Compose의 Web 공개 포트. 변경 시 ALLOWED_ORIGINS도 함께 수정 |
 | APP_HOST / APP_PORT | 0.0.0.0 / 8000 | API 바인딩. 포트 1~65535 |
 | APP_TIMEZONE | Asia/Seoul | 표시·교대 계산. DB 시각은 UTC |
 | ALLOWED_ORIGINS | http://localhost:5173 | API의 쉼표 구분 정확한 origin 목록. 쿠키 인증에서 wildcard 금지 |
@@ -39,15 +41,15 @@ cp -n .env.example .env
 | VITE_API_BASE_URL | /api/v1 | 브라우저의 동일 출처 API 경로 |
 | VITE_POLL_INTERVAL_MS | 2000 | 실행 중 UI polling 간격 |
 
-환경변수는 앱 구현 시 타입과 범위를 검사한다. 숫자는 양수여야 하며 `JOB_LEASE_SECONDS > AGENT_RUN_DEADLINE_SECONDS`가 아니면 시작 오류로 처리한다. live worker는 빈 API 키·모델을 허용하지 않는다. fake로 자동 전환하지 않는다. API는 모델 장애와 별개로 접수 원문을 저장할 수 있어야 한다.
+환경변수는 F0 설정 로더가 타입과 범위를 검사한다. 숫자는 양수여야 하며 `JOB_LEASE_SECONDS > AGENT_RUN_DEADLINE_SECONDS`가 아니면 시작 오류로 처리한다. live worker는 빈 API 키·모델을 허용하지 않는다. fake로 자동 전환하지 않는다. API는 모델 장애와 별개로 접수 원문을 저장할 수 있어야 한다.
 
-## 2. 실행 기반 구현 시 완료할 일
+## 2. 기능 연결 시 확인할 일
 
-1. F0가 위 변수 이름 그대로 설정 로더와 Compose 연결을 만든다. 비밀값이 없는 공개 설정만 Web에 전달한다.
+1. F0가 위 변수 이름으로 설정 로더와 Compose를 제공한다. 비밀값이 없는 공개 설정만 Web에 전달한다.
 2. API와 worker는 같은 DB·도메인 코드·마이그레이션을 사용한다. 마이그레이션 실행 주체는 하나로 둔다.
 3. Web 개발 서버와 배포 프록시는 `/api/v1`을 API로 전달한다. 환경에 따라 쿠키·Origin 검사를 실제 확인한다.
 4. F1이 실제 계정의 모델 smoke test를 실행하고 `TEST_RESULTS.md`에 모델·소요 시간·결과를 남긴다. 모델 이름을 임의로 사용 가능하다고 가정하지 않는다.
-5. 실제 실행 파일이 생긴 뒤 README에 검증한 설치·부팅·시험 명령을 추가한다. 현재 없는 명령을 실행 성공으로 표시하지 않는다.
+5. README와 F0 인계 문서에 실제 설치·부팅·시험 명령을 기록했다. 현재 worker는 만료 복구만 수행하며 F1 live handler 등록 전 모델 호출/Job claim을 하지 않는다.
 
 ## 3. Git 제외 확인
 

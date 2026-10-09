@@ -20,3 +20,15 @@
 ## 이후 기록
 
 새 기능 작업은 [작업 양식](templates/CODEX_WORKLOG.md)의 work_id와 F/AC/T-ID로 기록한다. 제안된 프롬프트를 실제 실행한 지시처럼 기록하지 않는다. 사람이 수정하지 않은 코드를 수정했다고 꾸미지 않는다.
+
+
+## F0-001 공통 실행 기반
+
+- 실제 지시: main에서 F0 브랜치 생성·구현 순서를 제안한 뒤 사용자가 `ㄱㄱㄱ`로 진행 지시. 기존 재곤 담당 제안에서 이번 F0 구현은 민재가 진행하는 것으로 안내했다.
+- 브랜치: main fast-forward 확인 후 feature/f0-foundation 생성. F2 PR #5와 코드는 그대로 유지했다.
+- 변경: PostgreSQL shared schema/migration/seed, 설정·세션·권한·오류, 명령 receipt·잠금·버전, worker lease/복구, Vue 공통 client/DTO/화면, Compose 및 시험.
+- 검증: Python 35 PASS, Web 7 PASS, 타입/빌드, migration 왕복, Compose·HTTP·API 재시작 후 세션 보존 PASS.
+- 실패와 수정: Docker의 짧은 디렉터리 경로에서 .env 탐색 실패를 확인해 저장소 marker 기반으로 수정하고 container-layout 회귀 시험 추가.
+- 경계: F1 live handler/접수·F2 DB adapter/업무 패널 연결·F3 인계·F4 verification은 구현하지 않았다. Worker는 F1 연결 전 만료 복구만 실행한다.
+- 기존 .env를 보존하고 실행용 비밀값은 Git 제외 로컬 파일에 생성했다. 대화 원문은 공개 PR에 포함하지 않는다.
+- 사람 코드 검토·실제 브라우저 확인: NOT_REVIEWED / NOT_RUN. 기능별 세부 커밋과 Draft PR로 인계한다.

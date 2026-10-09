@@ -16,3 +16,12 @@
 ## 실행 결함 기록
 
 현재 실행 중 확인한 앱 결함·수정 결과는 없다. 이후 [개선 양식](templates/IMPROVEMENT_RECORD.md)에 실제 실패 입력·원인·수정·동일 조건 재시험을 기록한다. 문서의 예상 실패를 관찰한 실패로 바꾸어 발표하지 않는다.
+
+
+## F0-CONFIG-001 컨테이너 설정 경로 탐색 실패
+
+- 관찰: 첫 Compose migrate가 exit 1. `/app/app/core/config.py`에서 `parents[4]`가 없어 IndexError.
+- 원인: 로컬 저장소의 고정 디렉터리 깊이를 컨테이너에서도 가정했다.
+- 수정: 상위 경로에서 compose.yaml이 있는 저장소를 찾을 때만 .env를 읽고, 컨테이너에서는 주입된 환경을 사용한다.
+- 재검증: container-layout 회귀 시험 추가, 서버 35 PASS. Compose migrate/seed exit 0과 db/api healthy, 실제 HTTP 성공 확인.
+- 제한: 앱 기능 통합이나 실제 모델 호출 성공으로 확장하지 않는다.

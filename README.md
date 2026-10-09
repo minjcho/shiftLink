@@ -1,8 +1,17 @@
 # ShiftLink 개발 구현 문서
 
-v0.3 구현 문서 · 2026-10-09 · 상태: 문서 준비, 앱 구현 전
+v0.3 구현 문서 · 2026-10-09 · 상태: F0 공통 기반 구현·검증, 기능 연결 대기
 
-ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 찾고, 사람의 승인·작업 수행·교대 인수·최종 해결 확인까지 같은 사건으로 연결하는 서비스다. 이 저장소는 현재 개발 명세와 기록 양식을 담고 있다. 실행 앱이나 테스트 통과 결과를 포함하지 않는다.
+ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 찾고, 사람의 승인·작업 수행·교대 인수·최종 해결 확인까지 같은 사건으로 연결하는 서비스다. 현재 브랜치는 PostgreSQL·세션·명령 처리·worker 기반과 Vue 공통 화면을 포함한다. F2 구현은 별도 [PR #5](https://github.com/minjcho/shiftLink/pull/5)에 있으며 아직 이 브랜치에 연결하지 않았다. [F0 실행·연결 문서](docs/17_F0_FOUNDATION.md)를 참고한다.
+
+## 로컬 실행
+
+```sh
+python3 scripts/setup_env.py
+docker compose up --build -d
+```
+
+기존 `.env`가 있으면 생성기가 보존하고 종료한다. 별도 파일은 `python3 scripts/setup_env.py --output .env.f0`로 만들고 `docker compose --env-file .env.f0 up --build -d`로 실행한다. Web은 `http://127.0.0.1:5173`, API는 `http://127.0.0.1:8000`이다. 네 계정 선택과 기본 자료 조회는 실제 DB를 사용한다. 사건 접수·작업·인수·해결 화면은 후속 기능 연결 전이다.
 
 ## 먼저 읽을 문서
 
@@ -10,7 +19,7 @@ ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 
 2. [기능별 개발 계획](docs/08_BUILD_PLAN.md)에서 맡을 기능과 의존성을 선택한다.
 3. [도메인 계약](docs/03_DOMAIN_MODEL.md)과 [API 계약](docs/04_API_CONTRACT.md)을 함께 읽는다.
 4. [기능별 Codex 작업 지시](docs/12_CODEX_TASKS.md)와 [시험 계획](docs/07_TEST_PLAN.md)을 해당 기능의 완료 조건으로 사용한다.
-5. [.env.example](.env.example)을 참고하고 [환경 설정](docs/ENVIRONMENT.md)에 따라 로컬 `.env`를 준비한다. 설정을 읽는 앱 코드는 아직 구현 전이다.
+5. [.env.example](.env.example)을 참고하고 [환경 설정](docs/ENVIRONMENT.md)에 따라 로컬 `.env`를 준비한다. 기존 환경 파일은 덮어쓰지 않는다.
 
 ## 기능별 책임
 
@@ -46,6 +55,7 @@ ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 
 | [13 심사 근거](docs/13_JUDGING_EVIDENCE_MAP.md) | 주장·기능·시험·실제 제출 근거 대응 |
 | [14 도입과 가치](docs/14_PILOT_AND_VALUE.md) | 파일럿·현장 가설·비용과 시간 측정 |
 | [15 제출 절차](docs/15_SUBMISSION_RUNBOOK.md) | 버전 동결·접근 확인·실제 접수 확인 |
+| [17 F0 실행·인계](docs/17_F0_FOUNDATION.md) | 로컬 실행·세션·DB·명령/worker 기반·기능 연결 |
 | [아키텍처](docs/ARCHITECTURE.md) / [Mermaid](docs/ARCHITECTURE.mmd) | 구성요소·실행 경계·기능 간 연결 |
 | [환경 설정](docs/ENVIRONMENT.md) | 환경변수·비밀값·실행 전 점검 |
 | [진행](PROGRESS.md) / [시험 결과](TEST_RESULTS.md) | 현재 상태·실제 실행 결과 |

@@ -2,7 +2,7 @@
 
 ## 1. 현재 결과
 
-문서 검사와 앱 시험을 분리한다. 앱·DB·worker·실제 OpenAI 호출을 이번 문서 작업에서 실행하지 않았다.
+아래 표는 문서 작성 당시 결과다. 이후 F0 실행 결과는 후속 절에 기록한다. F2 독립 결과는 별도 PR #5의 기록을 따른다. 실제 OpenAI 호출과 업무 전주기는 아직 미실행이다.
 
 | ID | 검사·시험 | 결과 | 근거·제한 |
 |---|---|---|---|
@@ -25,3 +25,27 @@
 ## 3. 판정 규칙
 
 NOT_RUN은 실행하지 않음, PASS는 명시된 조건을 실제 만족, FAIL은 실제 실행 후 기대 미충족, BLOCKED는 외부 조건으로 실행/완료할 수 없음을 뜻한다. 문서 검사 PASS는 앱이나 모델 시험 PASS가 아니다.
+
+
+## F0 공통 기반 검증 — 2026-10-09 KST
+
+- 기준: main `9de625e`에서 분기한 F0 변경. 시험 시 미커밋 상태, 커밋 후 내용은 기능별 F0 이력 참조.
+- 환경: 호스트 Python 3.13.11, PostgreSQL 17, Node 24. Compose Python 3.12 / Node 24 이미지. 실제 모델 호출 없음.
+- 데이터: 명세의 네 계정·두 설비·두 고정 교대. 초기 Incident 0개. 서버 시험은 별도 작업 DB 내 매회 고유 schema를 생성/삭제한다.
+
+| 검사 | 실행·근거 | 결과·제한 |
+|---|---|---|
+| 서버·DB | `F0_TEST_DATABASE_URL` 지정 후 `/tmp/shiftlink-f0-venv/bin/python -m pytest apps/api/tests/core -q` | **35 PASS, 0 SKIP**. 세션 매핑·위조·Origin·만료·교대/사업장, receipt·경합·rollback·버전, lease 재claim/최종 검사/만료 복구, 설정·migration 시험 |
+| migration | 실제 PostgreSQL에서 upgrade→downgrade→upgrade와 `alembic check` | **PASS**, metadata drift 없음 |
+| Web | apps/web에서 Node 24로 `npm test` | **7 PASS**, happy-dom. 명령 재시도/충돌·계정 변경 상태·화면 슬롯/경로 |
+| Web 타입·빌드 | `npm run build` | **PASS**, vue-tsc + Vite production bundle |
+| 공유 DTO | `python scripts/export_contracts.py --check` | **PASS**, Python DTO와 생성 TS 일치 |
+| Compose 첫 부팅 | 컨테이너에서 설정 파일 경로가 호스트와 달라 IndexError | **FAIL → 수정 후 PASS**, 상세 IMPROVEMENT_RECORD |
+| Compose 수정 후 | `docker compose --env-file docs/history/f0-runtime.env -p shiftlink-f0 up --build -d` | **PASS**, db/api healthy, migrate/seed exit 0, worker/web running |
+| 실제 HTTP | Web proxy를 통해 네 계정 로그인·/me·설비 2·교대 2 확인; 세 화면 경로 HTML 200 | **PASS**, 실제 렌더·클릭을 의미하지 않음 |
+| worker 단일 실행 | 실행 중 두 번째 worker 기동 | **PASS**, singleton 잠금으로 두 번째 프로세스가 명시적으로 종료됨 |
+| API 프로세스 재시작 | 실행 API 컨테이너 restart 후 기존 쿠키로 /me 재조회 | **PASS**, PostgreSQL 세션 보존 |
+| 실제 브라우저·F1/F2/F3/F4 통합 | 후속 기능 연결 필요 | **NOT_RUN**. 이전 Chrome 자동 조작 권한 거부를 우회하지 않았음 |
+| OpenAI live·업무 전주기·배포 | 범위 외 | **NOT_RUN** |
+
+httpx TestClient deprecation 경고 1개가 남아 있다. 시험 원본·Compose 로그·HTTP 결과는 Git 제외 경로 docs/history/f0-*에 보존하고 비밀값이나 세션 쿠키는 결과에 포함하지 않는다. 실제 실행 DB는 Compose volume에 유지하며 초기 자료를 업무 성공으로 계산하지 않는다. 전체 T1~T12 또는 F5 완료를 주장하지 않는다.
