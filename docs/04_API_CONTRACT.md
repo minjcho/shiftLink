@@ -271,3 +271,7 @@ GET `/evidence/{id}`는 source_type·source_id·source_version·위치·excerpt�
 초기 폴링은 `VITE_POLL_INTERVAL_MS=2000`이다. 숨겨진 탭에서 중지하고 현재 상세·최근 Job을 읽는다. 입력 성공 후 응답의 최신 version을 반영한다. 202 다음의 FAILED는 접수 실패로 되돌리지 않는다. 조회 실패·조사 중·질문 대기·검증 대기를 구분한다.
 
 F0가 공유 DTO·enum·OpenAPI 통합을 조정하고 각 기능 담당자가 요청·응답·화면·시험을 함께 완성한다. 변경 시 [도메인](03_DOMAIN_MODEL.md)·[Agent](05_AGENT_DESIGN.md)·[UI](06_UI_SPEC.md)·[시험](07_TEST_PLAN.md)을 동기화한다. 구현 이후 실제 OpenAPI와 이 문서의 endpoint·상태·버전·오류 계약을 대조한다. 현재 OpenAPI 생성·HTTP 호출·권한·동시성 시험은 모두 NOT_RUN이다.
+
+## F2 실연결 보완 — 2026-10-09
+
+승인·착수·결과 API는 F1 세션·Origin·execute_command를 사용하며 성공 응답 DTO는 기존 계약을 유지한다. 같은 완료 receipt는 권한을 위한 인증·사업장 범위 확인 후 최신 업무 상태보다 먼저 재사용한다. 신규 명령은 잠금 안에서 현재 owner/assignee와 두 버전을 검사한다. 내부 readiness port의 키 `ready`는 완료 HTTP의 `verification_ready`로 임의 변경하지 않는다. 전체 상세의 준비/최종 검증 필드와 F2 패널 연결은 후속 작업이다.

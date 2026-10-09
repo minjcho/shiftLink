@@ -222,3 +222,7 @@ ACK는 지정 수신 supervisor·최신 revision/token·현재 Incident 버전�
 ## F1 기반 세션 구현 보완 — 2026-10-09
 
 공유 물리 모델은 `app.core.models.Base`와 F1의 `0001_f1_foundation`을 기준으로 통합한다. 후속 `0002_session_shift`는 SessionToken에 교대 FK를 추가한다. 기존 token의 교대는 추측하지 않고 NULL을 유지해 재로그인을 요구한다. 세션은 선택한 배정에 고정되며 매 요청 사용자 활성·동일 site·배정 존재를 재검사한다. 업무 상태·버전·권한 계약 D01~D07은 유지한다. 기존 독립 F0 #8 schema는 이 chain에 섞지 않는다. [실행·인계](17_F0_FOUNDATION.md) 참고.
+
+## F2 ORM 연결 보완 — 2026-10-09
+
+F1 finalizer는 부모 상태·proposal 이벤트·버전·인계 갱신과 최종 lease 검사를 소유한다. F2 후보 확정 adapter는 동일 Session에 Action만 저장하며 부모나 이벤트를 별도로 변경하지 않는다. 기본 데모 기한은 서버 생성 시각 +1시간이다. 준비 검사는 F1 port에서 `{ready, unmet_requirements}`로 반환하며 F2 완료 HTTP 응답의 `verification_ready`와 구분한다. 현재 ORM 자료와 이전 UUID 기반 독립 시험 테이블은 중복 등록하지 않는다.

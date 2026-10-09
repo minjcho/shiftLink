@@ -154,3 +154,18 @@ harness가 생성 schema와 API/worker/Vue 프로세스를 정리했다. 원래 
 F0의 `lock_incident_graph → fence` 구현, 세션 교대 migration 0002, auth·모델, maintenance/live 단일 worker와 반려 사건의 조사 시작 제한을 보존했다. API client의 명시적 생성자 prefix 인자도 유지했다. F0의 공개 feature slot은 Promise<void> 계약을 유지하고 내부 재조회 결과 판단만 Promise<boolean>을 사용한다. 이 호환 보완 전 타입 검사에서 드러난 충돌을 고쳤으며 기존 시험의 기대값은 완화하지 않았다.
 
 이번 최종 결과도 local 검증이며 실제 모델·전체 F2/F3/F4 통합·새 Compose 기동·배포·제출은 수행하지 않았다. F0의 과거 Compose 실행 결과는 위 원래 기록으로 보존한다.
+
+## F2/F1 서버 통합 직접 검증 — 2026-10-09
+
+- 기준: F1 #6 `c46d490` + F2 #5 `3670cd2` 서버 로직 + `codex/f2-on-f1` 수정. 기존 이력/Seal 결과와 별도 직접 실행이다.
+- 환경: Python 3.13, PostgreSQL 17(기존 시험 전용 서버, 매 시험 새 격리 schema), Node 25.9.0. 업무 DB와 volume은 수정하지 않았다.
+- `F2_TEST_DATABASE_URL=<시험 DB> /private/tmp/shiftlink-f0-on-f1/.venv/bin/python -m pytest -q tests/backend apps/api/tests/actions`: **233 PASS, 0 SKIP**, 42.07초. 기존 F1/F0 124 + F2 독립 85(메모리/HTTP 계약 72·별도 stub 테이블 DB 제약 13) + 신규 실제 ORM/HTTP 24.
+- 신규 24: 실제 F1 finalizer→F2 확정, 권한/두 버전, 빈 작업·미답변·승인/근거 결함, 멱등/충돌, 후속 인계 hook 실패 rollback, 초과 Action 삽입 거부, 최종 lease 만료 rollback, 동시 완료, REJECT 차단, 늦은 결과·불변 fixture snapshot, API/worker 공통 조립.
+- 위 24 중 1개는 별도 uvicorn 프로세스·loopback HTTP·PostgreSQL로 제보/승인/착수/결과를 수행하고 API 프로세스 재시작 후 세션·같은 Action/결과·정확한 receipt 재사용을 확인한다. 모델 단계만 합성 후보/결과를 명시적으로 주입한다. 실제 모델 호출 증거는 아니다.
+- 기존 migration 시험이 0001→head(0003)→0001→head 왕복, 기존 업무/legacy session 보존, ORM metadata drift 없음을 확인했다. 신규 실제 DB 시험은 승인 revision 중복 INSERT 거부를 확인했다.
+- `python scripts/export_contracts.py --check`: PASS. 첫 시도는 Web 하위 경로에서 실행해 파일 경로 오류가 있었으며 저장소 루트에서 재실행해 통과했다.
+- `npm ci`, `npm test`, `npm run build`: 설치 완료, 기존 Web **65 PASS**, vue-tsc·Vite production build PASS. Node 25에 대한 일부 전이 의존성 engine 경고와 기존 lockfile audit 3건(중간1·심각2)이 출력됐다. 이번 작업에서 의존성/lockfile은 변경하지 않았다.
+- `git diff --check`: PASS.
+- 중간 실패: 신규 다른 사건 근거 fixture를 만들 때 Incident INSERT 전에 Evidence FK UPDATE가 실행됐다. fixture의 부모 INSERT를 먼저 flush해 수정했고 전체 재검증 233 PASS. 생산 코드 결함으로 기록하지 않는다.
+- 잔존 경고: 기존 Starlette/httpx TestClient deprecation 1개.
+- **NOT_RUN:** F2 패널 브라우저 E2E, F3 실제 인수와 전체 T8, F4 RESOLVE/RETURN·실제 해결 사례 생성, L1a/L1b/L2/L3 실제 모델, 외부 배포·접수.

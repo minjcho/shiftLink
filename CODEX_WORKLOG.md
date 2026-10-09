@@ -72,3 +72,14 @@
 - 최초 리뷰 수정 commit 59c4ce8의 push는 원격 F0 PR #9 병합 때문에 거부됐다. 백업 ref를 남기고 19b589c 위로 통합했다. 양쪽 문서 기록과 기존 F0 상태를 모두 보존했다.
 - 도구 잠금 구현은 F0 공통 graph 잠금 그대로 유지하고 이번 실제 교착·lease 회귀를 연결했다. API 생성자 인자와 세션·worker·migration·공용 타입·상세 슬롯도 유지했다. 새 입력 예산을 Compose API/worker 환경에 전달했다.
 - 8ef1dba 통합 후 서버124·타입계약·화면65 PASS. 공개 슬롯의 Promise<void> 호환을 34b154a에서 보완해 타입 빌드 PASS, 기본/비기본 경로 브라우저 각각2 PASS까지 확인했다. 미실행 범위와 소스별 검사 구분은 TEST_RESULTS에 남겼다.
+
+## F2 서버 실연결 — 2026-10-09
+
+요청: F4 전에 F2 연결 계약을 수정하고 F1 PR 업데이트를 작업 중 확인한다.
+
+- 별도 worktree `/private/tmp/shiftlink-f2-on-f1`, 브랜치 `codex/f2-on-f1`에서 구현. 원래 feature/f0-foundation과 다른 worktree는 보존.
+- 기준 F1 c46d490·F2 3670cd2. 작업 중 PR #6 HEAD를 반복 조회했고 확인 시점에 새 커밋 없음. 지속 백그라운드 감시 기능은 설치하지 않음.
+- F2 Action-only staging·ORM adapter·실제 세션/명령 receipt·준비 검사 변환, API/worker 생산 조립, 승인 revision UNIQUE 후속 migration, finalizer 추가 Action 차단. 기존 DB schema 중복 생성 없음.
+- 실제 실행: pytest 233 PASS, 기존 Web 65 PASS·build·생성 계약·diff 검사 PASS. uvicorn HTTP와 프로세스 재시작 포함. 상세는 TEST_RESULTS의 F2/F1 절.
+- 사람 검토: 대기. F3/F4/live/배포·제출은 수행하지 않음.
+- 대화 기록: 계획 단계 미저장 사실을 명시하고 확인 가능한 로컬 세션의 사용자·표시된 Codex 원문만 docs/history에 추가. 비밀·내부 추론·도구 원문은 제외.

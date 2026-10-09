@@ -16,7 +16,7 @@ from uuid import uuid4
 from app.core.config import Settings
 from app.core.db import create_session_factory
 from app.core.errors import DomainError
-from app.core.ports import FeaturePorts
+from app.core.ports import FeaturePorts, production_ports
 from app.core.worker_lock import single_worker
 from .finalizer import DecisionRejected, finalize
 from .jobs import LostLease, claim_job, finish_failure, prepare_run, recover_exhausted
@@ -116,7 +116,7 @@ def main():
     if args.mode == "live" and settings.agent_mode != "live":
         raise ValueError("The runtime worker requires live mode; fake/replay need an explicit test adapter")
     factory = create_session_factory(settings.database_url)
-    ports = FeaturePorts()
+    ports = production_ports()
     stopped = threading.Event()
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, lambda *_: stopped.set())
