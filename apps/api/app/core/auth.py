@@ -4,10 +4,11 @@ from hashlib import sha256
 import hmac
 import secrets
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, func
 
 from .errors import DomainError
-from .models import SessionToken, Shift, ShiftAssignment, User, utcnow
+from .models import SessionToken, Shift, ShiftAssignment, User
+from .contracts import SessionView
 
 COOKIE_NAME = "shiftlink_session"
 
@@ -18,6 +19,8 @@ class Principal:
     site_id: str
     role: str
     display_name: str
+    shift_occurrence_id: str | None = None
+    duties: tuple[str, ...] = ()
 
 
 def token_hash(token, settings):
@@ -32,14 +35,22 @@ def check_origin(request):
 def principal_from_request(request):
     settings = request.app.state.settings
     raw = request.cookies.get(COOKIE_NAME)
-    if not raw:
+    if not raw or len(raw) > 200:
         raise DomainError(401, "UNAUTHENTICATED", "세션을 선택해 주세요.")
     with request.app.state.session_factory() as tx:
-        row = tx.scalar(select(User).join(SessionToken, SessionToken.user_id == User.id).where(
-            SessionToken.token_hash == token_hash(raw, settings), SessionToken.expires_at > utcnow(), User.enabled.is_(True)))
+        row = tx.execute(select(User, SessionToken.shift_occurrence_id)
+            .join(SessionToken, SessionToken.user_id == User.id)
+            .join(Shift, Shift.id == SessionToken.shift_occurrence_id).where(
+                SessionToken.token_hash == token_hash(raw, settings), SessionToken.expires_at > func.clock_timestamp(),
+                User.enabled.is_(True), Shift.site_id == User.site_id)).first()
         if row is None:
             raise DomainError(401, "UNAUTHENTICATED", "유효한 세션이 필요합니다.")
-        return Principal(row.id, row.site_id, row.role, row.display_name)
+        user, shift_id = row
+        duties = tuple(tx.scalars(select(ShiftAssignment.duty).where(
+            ShiftAssignment.user_id == user.id, ShiftAssignment.shift_occurrence_id == shift_id)))
+        if not duties:
+            raise DomainError(403, "FORBIDDEN", "교대 배정을 확인할 수 없습니다.")
+        return Principal(user.id, user.site_id, user.role, user.display_name, shift_id, duties)
 
 
 def rotate_demo_session(request, account_key):
@@ -51,12 +62,22 @@ def rotate_demo_session(request, account_key):
         user = tx.scalar(select(User).where(User.account_key == account_key, User.enabled.is_(True)))
         if user is None:
             raise DomainError(403, "FORBIDDEN", "허용된 데모 계정이 아닙니다.")
+        assignment = tx.execute(select(ShiftAssignment, Shift)
+            .join(Shift, Shift.id == ShiftAssignment.shift_occurrence_id)
+            .where(ShiftAssignment.user_id == user.id, Shift.site_id == user.site_id)
+            .order_by(Shift.active.desc(), Shift.starts_at, Shift.id)).first()
+        if assignment is None:
+            raise DomainError(422, "SHIFT_ASSIGNMENT_MISSING", "교대 배정이 없습니다.")
         old = request.cookies.get(COOKIE_NAME)
         if old:
             tx.execute(delete(SessionToken).where(SessionToken.token_hash == token_hash(old, settings)))
         raw = secrets.token_urlsafe(32)
-        tx.add(SessionToken(user_id=user.id, token_hash=token_hash(raw, settings), expires_at=utcnow() + timedelta(hours=12)))
-        return raw, {"user_id": user.id, "display_name": user.display_name, "role": user.role, "site_id": user.site_id}
+        tx.add(SessionToken(user_id=user.id, token_hash=token_hash(raw, settings),
+                            shift_occurrence_id=assignment[1].id,
+                            expires_at=func.clock_timestamp() + timedelta(hours=12)))
+        principal = Principal(user.id, user.site_id, user.role, user.display_name,
+                              assignment[1].id, (assignment[0].duty,))
+        return raw, principal_data(tx, principal)
 
 
 def require_owner(principal, incident):
@@ -69,9 +90,6 @@ def current_shift(tx, principal):
 
 
 def principal_data(tx, principal):
-    assignment = tx.execute(select(ShiftAssignment, Shift).join(Shift, Shift.id == ShiftAssignment.shift_occurrence_id)
-        .where(ShiftAssignment.user_id == principal.user_id, Shift.site_id == principal.site_id)
-        .order_by(Shift.active.desc(), Shift.starts_at)).first()
-    return {"user_id": principal.user_id, "display_name": principal.display_name, "role": principal.role,
-            "site_id": principal.site_id, "shift_occurrence_id": assignment[1].id if assignment else None,
-            "duties": [assignment[0].duty] if assignment else []}
+    return SessionView(user_id=principal.user_id, display_name=principal.display_name, role=principal.role,
+                       site_id=principal.site_id, shift_occurrence_id=principal.shift_occurrence_id,
+                       duties=list(principal.duties)).model_dump(mode="json")

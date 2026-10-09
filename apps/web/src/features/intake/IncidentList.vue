@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { IncidentStatusValues } from '../../lib/contracts';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { api, Command, errorMessage, SessionChanged } from '../../lib/api';
 import type { Equipment, Incident, IntakeResult, Page } from '../../lib/types';
@@ -67,7 +68,7 @@ async function review() { await refresh(); command.reset(); }
     </section>
     <section aria-labelledby="list-heading" class="incidents-section">
       <div class="section-heading"><div><span class="section-number">진행 상황</span><h2 id="list-heading">사건 목록</h2></div><button class="secondary" :disabled="loading" @click="refresh()">새로고침</button></div>
-      <div class="filters"><div><label for="scope-filter">내 확인 요청·업무</label><select id="scope-filter" v-model="scope"><option value="all">사업장 전체</option><option value="mine">나와 관련된 사건</option></select></div><div><label for="status-filter">사건 상태</label><select id="status-filter" v-model="status"><option value="">미해결 전체</option><option v-for="s in ['OPEN','INVESTIGATING','ACTION_REQUIRED','IN_PROGRESS','PENDING_VERIFICATION','RESOLVED']" :key="s" :value="s">{{ label(s) }}</option></select></div><div><label for="equipment-filter">설비 필터</label><select id="equipment-filter" v-model="filterEquipment"><option value="">모든 설비</option><option v-for="item in equipment" :key="item.id" :value="item.id">{{ item.code }}</option></select></div></div>
+      <div class="filters"><div><label for="scope-filter">내 확인 요청·업무</label><select id="scope-filter" v-model="scope"><option value="all">사업장 전체</option><option value="mine">나와 관련된 사건</option></select></div><div><label for="status-filter">사건 상태</label><select id="status-filter" v-model="status"><option value="">미해결 전체</option><option v-for="s in IncidentStatusValues" :key="s" :value="s">{{ label(s) }}</option></select></div><div><label for="equipment-filter">설비 필터</label><select id="equipment-filter" v-model="filterEquipment"><option value="">모든 설비</option><option v-for="item in equipment" :key="item.id" :value="item.id">{{ item.code }}</option></select></div></div>
       <p class="freshness">마지막 성공 조회: {{ time(lastSuccess) }}</p>
       <p v-if="error" role="alert" class="notice error">{{ error }} {{ items !== null ? '이전 조회 내용을 표시하고 있습니다.' : '아직 목록을 확인하지 못했습니다.' }}</p>
       <p v-if="items === null && loading" role="status">사건 조회 중…</p>

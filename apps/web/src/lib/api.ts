@@ -4,6 +4,7 @@ export class ApiError extends Error {
 }
 export class SessionChanged extends Error {}
 export class ApiClient {
+  constructor(private readonly baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1') {}
   private epoch = 0;
   private pending = new Set<AbortController>();
   get sessionEpoch() { return this.epoch; }
@@ -13,7 +14,7 @@ export class ApiClient {
     const controller = new AbortController();
     this.pending.add(controller);
     try {
-      const response = await fetch(`/api/v1${path}`, {
+      const response = await fetch(`${this.baseUrl.replace(/\/$/, '')}${path}`, {
         method, credentials: 'include', signal: controller.signal,
         headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(key ? { 'Idempotency-Key': key } : {}) },
         body: body === undefined ? undefined : JSON.stringify(body),

@@ -32,3 +32,44 @@ describe('AC31 inputs and observed-read state', () => {
     }); vi.stubGlobal('fetch', fetcher); vi.stubGlobal('scrollTo', vi.fn()); history.replaceState({}, '', '/incidents'); const wrapper = mount(App); wrappers.push(wrapper); await flushPromises(); await wrapper.find('#intake-text').setValue('이전 계정 원문'); await wrapper.find('.intake-form form').trigger('submit'); await flushPromises(); await wrapper.find('#account').setValue('maintainer'); await wrapper.find('.session-area form').trigger('submit'); await flushPromises(); expect(wrapper.text()).toContain('이전 계정의 재전송 대기를 정리'); expect((wrapper.find('#intake-text').element as HTMLTextAreaElement).value).toBe(''); expect(fetcher.mock.calls.filter(c => c[0].endsWith('/incidents') && c[1].method === 'POST')).toHaveLength(1); expect(wrapper.text()).not.toContain('같은 요청 결과 확인');
   });
 });
+
+describe('F0 session concurrency', () => {
+  it('allows only one session POST until cookie and visible identity are refreshed', async () => {
+    let finishSwitch!: (value: Response) => void;
+    let currentMe = reporter;
+    const fetcher = vi.fn().mockImplementation((url: string) => {
+      if (url.endsWith('/demo/session')) return new Promise(resolve => { finishSwitch = resolve; });
+      return Promise.resolve(response(url.endsWith('/me') ? currentMe : url.endsWith('/equipment') ? { items: equipment } : { items: [], next_cursor: null }));
+    });
+    vi.stubGlobal('fetch', fetcher);
+    history.replaceState({}, '', '/incidents');
+    const wrapper = mount(App); wrappers.push(wrapper); await flushPromises();
+    await wrapper.find('#account').setValue('maintainer');
+    await wrapper.find('.session-area form').trigger('submit');
+    await wrapper.find('.session-area form').trigger('submit');
+    expect(fetcher.mock.calls.filter(c => c[0].endsWith('/demo/session'))).toHaveLength(1);
+    expect(wrapper.find('#account').attributes('disabled')).toBeDefined();
+    expect(wrapper.find('.session-identity').exists()).toBe(false);
+    currentMe = maintainer; finishSwitch(response(maintainer)); await flushPromises();
+    expect(wrapper.find('.session-identity').text()).toContain('정비 담당자');
+    expect(wrapper.find('#account').attributes('disabled')).toBeUndefined();
+  });
+});
+
+describe('F0 feature panel boundary', () => {
+  it('shares the authoritative detail and refresh with a feature slot', async () => {
+    const { h } = await import('vue');
+    let current = detail();
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) => Promise.resolve(response(url.includes('/jobs/') ? job : current))));
+    const wrapper = mount(IncidentDetail, {
+      props: { id: current.id, me: reporter, equipment },
+      slots: { actions: ({ detail: value, session, refresh }: { detail: ReturnType<typeof detail>; session: typeof reporter; refresh: () => Promise<void> }) => h('button', { id: 'feature-refresh', onClick: refresh }, `${value.version}:${session.user_id}`) },
+    });
+    wrappers.push(wrapper); await flushPromises();
+    expect(wrapper.find('#feature-refresh').text()).toBe(`3:${reporter.user_id}`);
+    current = detail({ version: 4 });
+    await wrapper.find('#feature-refresh').trigger('click'); await flushPromises();
+    expect(wrapper.find('#feature-refresh').text()).toBe(`4:${reporter.user_id}`);
+    expect(wrapper.find('.detail-meta').text()).toContain('업무 버전 4');
+  });
+});
