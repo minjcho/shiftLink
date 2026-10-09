@@ -315,3 +315,45 @@ def test_production_ports_wired_without_test_injection(session_factory, settings
     assert app.state.ports.readiness_evaluator is readiness
     paths = app.openapi()['paths']
     assert paths['/api/v1/actions/{action_id}/completion']['post']['responses']['200']['content']['application/json']['schema']
+
+
+@pytest.mark.parametrize('operation,extra', [
+    ('approval-decisions', {'decision': 'APPROVE', 'reason': '확인'}),
+    ('start', {}), ('completion', {'result': '완료'})])
+def test_action_routes_declare_and_require_key(client, operation, extra):
+    path = '/api/v1/actions/{action_id}/' + operation
+    parameters = client.app.openapi()['paths'][path]['post']['parameters']
+    header = next(p for p in parameters if p['in'] == 'header' and p['name'] == 'Idempotency-Key')
+    assert header['required'] is True
+    response = client.post(path.format(action_id=uuid4()), json={
+        'expected_version': 1, 'expected_incident_version': 1, **extra},
+        headers={'Origin': 'http://testserver'})
+    assert response.status_code == 422
+    assert {'location': ['header', 'Idempotency-Key'], 'type': 'missing'} in response.json()['error']['details']['fields']
+
+
+@pytest.mark.parametrize('oversized', [
+    {'result': '가' * 20001}, {'evidence_refs': [str(uuid4())] * 101}])
+def test_completion_limits_reject_without_writes(client, login, session_factory, demo_ids, ports, oversized):
+    incident_id, action_id = proposed(client, login, session_factory, demo_ids, ports)
+    approve_start(client, login, action_id)
+    key = str(uuid4())
+    response = post(client, f'/actions/{action_id}/completion', {
+        'expected_version': 3, 'expected_incident_version': 5,
+        'result': '완료', 'evidence_refs': [], **oversized}, key)
+    assert response.status_code == 422
+    assert response.json()['error']['code'] == 'VALIDATION_ERROR'
+    with session_factory() as tx:
+        assert tx.get(db.Incident, incident_id).version == 5
+        assert tx.get(db.Action, action_id).status == 'IN_PROGRESS'
+        assert tx.scalar(select(func.count()).select_from(db.Message).where(db.Message.kind == 'ACTION_RESULT')) == 0
+        assert tx.scalar(select(func.count()).select_from(db.Evidence).where(db.Evidence.source_type == 'completion_report')) == 0
+        assert tx.scalar(select(func.count()).select_from(db.CommandReceipt).where(db.CommandReceipt.idempotency_key == key)) == 0
+
+
+def test_completion_accepts_limits_and_preserves_text():
+    from app.features.actions.commands import CompletionCommand
+    result = ' ' + '가' * 19998 + '\n'
+    command = CompletionCommand(expected_version=1, expected_incident_version=1,
+        result=result, evidence_refs=[uuid4() for _ in range(100)])
+    assert command.result == result and len(command.evidence_refs) == 100

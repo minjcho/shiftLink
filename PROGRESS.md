@@ -52,3 +52,7 @@ F1 PR #6에 F0 보강 PR #9가 병합됐다. #8의 독립 schema·worker·화면
 `codex/f2-on-f1`에서 F1 #6 `c46d490`을 기준으로 #5의 서버 업무 로직·시험을 통합했다. Action-only 후보 staging, ORM adapter, 공유 receipt·세션·Origin, 공통 준비 검사와 API/worker 조립을 연결했다. 작업 중 새 F1 HEAD 7072e63을 발견해 통합하고 재검증했다. F2 화면 전체 완료를 선행 조건으로 두지 않고 승인·착수·결과·검증 대기 서버 경로를 먼저 검증했다.
 
 최신 통합 서버 243 PASS(실제 DB와 독립 계약 시험 구분은 TEST_RESULTS), 기존 Web 70 PASS·타입/빌드·생성 계약 검사 PASS. 별도 uvicorn 프로세스의 실제 HTTP와 재시작 후 세션·결과·receipt 보존을 확인했다. F2 전체 DONE은 아니며 F4 사람 검증·F3 인수·live·브라우저 작업 패널은 후속이다.
+
+## F2 리뷰 보완·병합 준비 — 2026-10-09
+
+PR #5의 OpenAPI 필수 헤더 누락과 완료 입력 상한을 보완했다. 서버 249 PASS(기존243+회귀6), 생성 계약 검사 PASS. 사용자 요청에 따라 시간 제약으로 작업 패널 실제 연결·전체 전주기/live 검증은 [이슈 #16](https://github.com/minjcho/shiftLink/issues/16)으로 남긴다. Worker Lock #10 및 F1 #13/#14/#15는 기존 이슈를 유지한다. F2 전체 완료나 해당 결함 해결을 뜻하지 않는다.

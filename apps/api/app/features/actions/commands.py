@@ -1,6 +1,8 @@
 from typing import Literal
 from uuid import UUID
 
+from pydantic import Field
+
 from .models import FrozenModel, Text, Version
 
 
@@ -15,8 +17,8 @@ class ApprovalCommand(StartCommand):
 
 
 class CompletionCommand(StartCommand):
-    result: Text
-    evidence_refs: tuple[UUID, ...] = ()
+    result: Text = Field(max_length=20000)
+    evidence_refs: tuple[UUID, ...] = Field(default=(), max_length=100)
 
 
 ActionCommand = ApprovalCommand | CompletionCommand | StartCommand
