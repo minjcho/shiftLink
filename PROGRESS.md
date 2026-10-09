@@ -10,7 +10,7 @@
 | F0 | 공통 실행 기반·계약 | 재곤 통합, 민재 검토 | IN_PROGRESS | F1용 최소 DB·세션·seed·receipt 제공; 전체 F0 완료 별도 |
 | F1 | 접수·AI 조사·질문과 답변 | 재곤 | [Seal 판정](docs/specs/f1-intake-investigation/PROGRESS.md) | 직접 서버 88개·화면 30개·실제 브라우저 및 빌드 PASS; live/타 기능 전체 통합은 별도 |
 | F2 | 작업 제안 확정·승인·착수·결과 | 민재 | NOT_STARTED | F1 finalizer와 Action 생성 서비스 연결 |
-| F3 | 교대 인계·인수 | 재곤 | NOT_STARTED | snapshot·ACK·owner 이전 |
+| F3 | 교대 인계·인수 | 재곤 | [실행 기록의 현재 판정](docs/specs/f3-handover/PROGRESS.md) | 생성·ACK·재ACK·실제 UI/HTTP/DB 및 API 재시작 시험 통과 |
 | F4 | 최종 검증·해결 이력 | 민재 | NOT_STARTED | 최신 조건의 사람 검증과 case |
 | F5 | 전주기 검증·제출 | 공동 | NOT_STARTED | T/L 실행·배포·접수 근거 |
 | Phase 2/3 | 판단 강화·확장 | 미배정 | NOT_STARTED | Phase 1 통과 전 착수하지 않음 |
@@ -19,7 +19,7 @@
 
 ## 다음 구현 작업
 
-사용자 “@Seal F1부분만 진행해줘”에 따라 F1과 그 최소 실행 기반을 구현한다. 다음 통합은 F2/F4 서비스 주입과 실제 모델 L1a/L1b/L2/L3이며 F3 생성·ACK 구현은 별도 요청 범위다. 독립 F1 완료와 기존 기능 전체 완료를 구별한다.
+사용자 “@Seal F1부분만 진행해줘”에 따라 F1과 그 최소 실행 기반을 구현한다. 다음 통합은 F2/F4 서비스 주입과 실제 모델 L1a/L1b/L2/L3이며 F3 생성·조회·ACK·화면 구현은 후속 요청으로 진행했으며 [F3 실행 기록](docs/specs/f3-handover/PROGRESS.md)을 따른다. 독립 F1 완료와 기존 기능 전체 완료를 구별한다.
 
 ## 시간순 기록
 
@@ -35,3 +35,11 @@
 ## 제출 상태
 
 배포 NOT_DEPLOYED · 리허설 NOT_RUN · 발표 PDF NOT_CREATED · 접수 NOT_SUBMITTED. 실제 링크·평가 SHA·접수 상태는 [SUBMISSION.md](SUBMISSION.md)에 기록한다.
+
+### 2026-10-09T12:53:10+09:00 F3 구현·직접 검증
+
+F3 생성/조회/ACK, 불변 revision, 고정 cutoff와 추가 항목, owner 이전·재ACK, 실제 F1 갱신 port, Vue 생성/인수/상세 요약을 연결했다. PostgreSQL·HTTP 52개와 웹 빌드가 직접 통과했다. 화면 시나리오 3개는 정적 등록만 확인했고 런타임은 NOT_RUN이다. F1의 동일 Chromium 실행 권한 거부를 재시도하지 않는다. Seal 완료·live T8·배포 완료는 주장하지 않는다.
+
+### 2026-10-09T13:07:51+09:00 F3 브라우저 환경 재확인
+
+사용자 “다시 확인해줘 현재 세션에서” 요청으로 바뀐 권한 환경을 확인했다. Chromium156.0.8078.4가 정상 실행됐고 실제 F3 화면의 생성·인수·API 재시작, 새 원문 재인수·과거 revision·고정 cutoff, DB 조회 실패·409 수동 재확인·응답 유실 재시도·세션 전환 시험이 통과했다. 입력 fixture만 합성이며 F3 API·DB 성공 응답은 실제 구현이다. 사용자 “총 100회로 늘려 진행”으로 후속 검증 예산을 확정했다. F3 완료 여부는 중복된 정적 상태 대신 위 행의 Seal 실행 기록을 기준으로 확인한다.

@@ -45,3 +45,18 @@
 - main을 기반으로 한 공통 명세 b11945b를 새 원격 jgoneit의 시작점으로 사용한다. F1 source branch는 codex/f1-intake-investigation-pr이며 원본 로컬 jgoneit의 F1/F3와 작업 이력은 보존한다.
 - F1 구현과 최소 공통 기반, F1 실행 기록만 PR diff에 포함한다. F3 명세/대화 내보내기 도구는 공통 기준에 이미 있으므로 diff 밖이다. F3 구현/검사/실행 기록은 포함하지 않는다.
 - 분리 소스에서 서버88·화면30·빌드·실제 browser AC33을 다시 통과했다. 기존 Seal 완료 기록과 PR 소스의 직접 검증을 별도로 기재한다.
+
+## F3 Seal 실행 — 2026-10-09T12:53:10+09:00
+
+- 사용자 요청: “@Seal”, 작업 위치 결정: “jgoneit 브랜치에서 진행해줘”. 이 브랜치의 기존 18-AC SPEC을 변경하지 않고 실행했다.
+- F1/공통 기반 b0bcb54c41ee를 baseline으로 고정하고 ha start seq 1/input seq 2를 기록했다. 기존 다른 작업과 이전 worktree 문서를 보존했다.
+- 서버·화면·시험을 병렬 작성하고 root가 router/worker/상세 summary 연결과 민감한 ACK token의 상세 이벤트 노출 차단을 통합했다. 공유 enum/migration과 기존 F1 시험은 변경하지 않았다.
+- PostgreSQL·HTTP 직접 52개, 웹 빌드·시험 등록 통과. native Chromium 권한 실패가 이미 기록된 환경이어서 실제 F3 화면은 NOT_RUN이다.
+- 검사도 executor가 작성했다. 사람 검토 NOT_REVIEWED, 전체 live T8·배포·push NOT_RUN. Seal 최종 상태는 F3 bundle을 따른다.
+
+## F3 환경 재확인과 브라우저 검증 — 2026-10-09T13:07:51+09:00
+
+- 실제 사용자 요청 “다시 확인해줘 현재 세션에서”; 실제 예산 답변 “총 100회로 늘려 진행”. ha input52/unblock53/reopen54에 기록했다.
+- 이전 Chromium 권한 실패는 현재 환경에서 해소됐다. 실제 UI·HTTP·PostgreSQL 브라우저3개 조건이 통과했다.
+- 명시된 값/상태를 여러 요소 중 단일 요소로 특정하는 selector와 키보드 제출 준비 검사를 개선했다. 앱 성공을 만드는 대체 응답은 추가하지 않았다.
+- 코드 변화와 최종 검증 결과/완료 판정은 [F3 실행 기록](docs/specs/f3-handover/PROGRESS.md)을 따른다. 사람 검토·live 모델·배포·접수는 주장하지 않는다.

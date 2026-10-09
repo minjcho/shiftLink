@@ -2,7 +2,7 @@
 
 ## 1. 현재 결과
 
-문서 검사와 앱 시험을 분리한다. 앱·DB·worker·실제 OpenAI 호출을 이번 문서 작업에서 실행하지 않았다.
+아래 초기 문서 검사와 이후 앱 시험을 분리한다. 초기 문서 작업은 앱을 실행하지 않았으며, 최신 F1/F3 실행과 한계는 하단 기록을 따른다.
 
 | ID | 검사·시험 | 결과 | 근거·제한 |
 |---|---|---|---|
@@ -83,3 +83,34 @@ Chromium 설치 전 첫 시도는 실행 파일 부재로 실패했고 설치 �
 직접 시험 당시 HEAD는 9c098cc이고 후속 F1 문서/기록 가져오기 변경만 dirty였다. 실행 소스와 시험 정의는 0fbdbac과 동일하다. 최종 PR commit은 문서·기록만 더하며 같은 실행 소스를 유지한다. PostgreSQL은 기존 시험 전용 컨테이너와 새 임의 schema를 사용했고 harness는 시험 프로세스/schema를 정리했다. 의존성은 동일한 기존 로컬 설치를 재사용했다.
 
 보존한 Seal seq 84는 F3 포함 tree b4e63f4에서 생성된 과거 완료 기록이다. 이것을 PR 분리 SHA의 새로운 ha 완료로 보고하지 않는다. 이 절의 결과는 별도로 직접 실행한 검증이다. 실제 모델·F2/F3/F4 제품 통합·배포·제출은 NOT_RUN이며 모델 fake와 계약 대체를 명시한다.
+
+## F3 구현 직접 검증 — 2026-10-09T12:53:10+09:00
+
+기준 기반 b0bcb54c41ee, jgoneit의 F3 변경은 검사 시 미커밋이었다. 입력은 합성 fixture이며 DB는 독립 schema의 PostgreSQL 17.11, 세션·HTTP·F3 서비스는 실제 구현이다. 모델 호출은 없다. 검사 작성자는 executor, assurance local이다.
+
+| 검사 | 결과 | 범위와 한계 |
+| --- | --- | --- |
+| `.venv/bin/python -m pytest -q tests/handovers` (PYTHONPATH=apps/api) | 52 PASS | 생성·조회·ACK·revision·권한·receipt·SQL 잠금 경합·rollback·실제 F1 current-lease SUPERSEDED |
+| `python3 scripts/check_f3.py AC-18` | 3 PASS | 모델 부재·analysis-only/버전·F1 연결, 아직 ha 외 직접 실행 |
+| `npm --prefix apps/web run build` | PASS | vue-tsc·Vite build; UI 런타임 증거 아님 |
+| `npx playwright test tests/handovers.spec.ts --list` (apps/web) | PASS | AC-1/16/17 세 시험 등록만 확인 |
+| `scripts/f3_browser.py AC-1/16/17` | NOT_RUN | 동일 환경 F1 Chromium 권한 실패가 기록돼 native 실행 재시도 보류; F3 사용자 흐름 미확인 |
+| 전체 live T8·F2/F4 제품 연결·배포 | NOT_RUN | F3 합성 입력 경계와 별도 |
+
+Seal baseline/current의 최종 기록 번호는 [F3 PROGRESS](docs/specs/f3-handover/PROGRESS.md)를 따른다. 브라우저 미실행을 PASS로 대신하지 않는다.
+
+### 2026-10-09T12:55:37+09:00 F3 교차 회귀 보완
+
+S-02의 해결 상태·재ACK 필요를 명시했고 두 경계를 회귀 시험에 추가했다. F1 시험 전체 첫 실행에서 F3 기본 hook 등록이 명시적으로 주입된 빈 FeaturePorts를 덮어써 기존 missing-adapter 시험 1개가 실패(87 PASS, 1 FAIL)했다. `create_app` 기본 구성과 명시적 주입을 구분해 수정했으며 기존 F1 시험은 변경하지 않았다. 최종 `PYTHONPATH=apps/api .venv/bin/python -m pytest -q tests/backend tests/handovers`는 **141 PASS (F1 88 + F3 53)**였다. 최종 Vue 타입 검사·빌드도 PASS다. 실제 브라우저 결과는 여전히 NOT_RUN이며 이 기록은 ha 밖에서 실행한 결과다.
+
+## F3 실제 브라우저 재개 — 2026-10-09T13:07:51+09:00
+
+권한 변경 후 native Chromium156.0.8078.4 실행이 성공했고 기존 block을 해제했다. 아래 결과는 실제 PostgreSQL17의 고유 schema, 실제 FastAPI·Vue, 모델 없는 합성 입력으로 확인했다. 자동화 성공 응답을 mock으로 대체하지 않는다. 네트워크 응답 유실은 실제 commit 뒤 응답만 끊어 재현한다.
+
+| 조건 | 확인한 결과 | 기록 |
+| --- | --- | --- |
+| AC-1 | 실제 UI 생성·항목 ACK·동일 사건/Action/assignee·미해결 상태·상세 요약·reload/API restart·모바일 가로 넘침 없음 | PASS, ha seq55 |
+| AC-16 | 새 원문 revision2·확인 중 원문 보존·수동 최신 확인/재ACK·과거 revision·cutoff 이후 추가·고정 시각·ACK 후 추가 표시 | PASS, ha seq56 |
+| AC-17 | 성공한 빈 목록·실제 DB 조회 실패/복구·ACK 차단·409 표시/input 보존·명시 재확인·실제 commit 뒤 응답 유실과 동일 key replay·세션 전환 재전송 없음 | PASS, ha seq57 |
+
+시험 선택자를 정확히 좁히고 키보드 제출의 버튼 준비를 기다리는 변경(eb5ad4e)이 있어, 최종 커밋의18개 조건 유효 판정은 F3 실행 bundle에서 다시 기록한다. 기존18개 baseline 무효 기록은 삭제하지 않았다. 유효 baseline/current, 최종 SHA·완료 기록은 [F3 PROGRESS](docs/specs/f3-handover/PROGRESS.md)를 따른다. 전체 live T8·F2/F4 제품 서비스·실제 모델·배포/제출은 NOT_RUN이다.

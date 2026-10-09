@@ -56,7 +56,8 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
     app = FastAPI(title="ShiftLink F1", lifespan=lifespan)
     app.state.settings = settings
     app.state.session_factory = session_factory or create_session_factory(database_url or settings.database_url)
-    app.state.ports = ports or FeaturePorts()
+    from app.features.handovers.service import refresh_handover_items
+    app.state.ports = ports if ports is not None else FeaturePorts(handover_refresher=refresh_handover_items)
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.allowed_origins), allow_credentials=True,
                        allow_methods=["GET", "POST"], allow_headers=["Content-Type", "Idempotency-Key"],
                        expose_headers=["Idempotent-Replayed"])
@@ -159,6 +160,8 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
             service.read_incident(tx, principal, row.incident_id)
             return with_meta(request, {"data": service.as_dict(row)})
 
+    from app.features.handovers.router import register as register_handovers
+    register_handovers(app, command=command, with_meta=with_meta)
     return app
 
 

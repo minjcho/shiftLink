@@ -6,8 +6,9 @@ import { label, person, time } from '../../lib/presentation';
 import { usePolling } from '../../lib/polling';
 import CommandFeedback from '../../components/CommandFeedback.vue';
 import EvidencePanel from '../../components/EvidencePanel.vue';
+import HandoverSummary from '../handovers/HandoverSummary.vue';
 const props = defineProps<{ id: string; me: Me; equipment: Equipment[]; notice?: string }>();
-const emit = defineEmits<{ back: [] }>();
+const emit = defineEmits<{ back: []; openHandover: [id: string] }>();
 const detail = ref<IncidentDetail | null>(null);
 const job = ref<Job | null>(null);
 const readError = ref('');
@@ -89,7 +90,7 @@ async function retryJob(retry = false) {
       <div class="column">
         <section class="panel analysis-panel" aria-labelledby="analysis-heading"><span class="section-number">AI 조사 참고</span><h2 id="analysis-heading">사실과 미확인 내용</h2><p class="muted">AI 조사 결과는 사람의 승인이나 사건 해결을 대신하지 않습니다.</p><template v-if="detail.analysis"><p v-if="stale" class="notice amber">이전 정보에 대한 분석 · 갱신 필요<br>분석 기준 {{ detail.analysis.base_version }} / 현재 업무 {{ detail.version }}</p><p v-if="detail.analysis.decision === 'BLOCKED'" class="notice error">조사 보류 · 정상 또는 해결로 판단되지 않았습니다.</p><p>{{ detail.analysis.reason }}</p><h3>기록·사람 진술·시스템 상태</h3><ul class="facts"><li v-for="(fact, index) in detail.analysis.facts" :key="index"><span class="category">{{ ({ HUMAN_STATEMENT: '사람 진술', RECORD: '기록', SYSTEM_STATE: '시스템 상태' } as Record<string,string>)[fact.kind] ?? fact.kind }}</span><p>{{ fact.text }}</p><small>근거 {{ fact.source_refs.join(', ') || '없음' }}</small></li></ul><h3>가설 · 확인된 사실 아님</h3><ul><li v-for="(hypothesis,index) in detail.analysis.hypotheses" :key="index">{{ hypothesis }}</li></ul><p v-if="!detail.analysis.hypotheses.length" class="muted">기록된 가설 없음</p><h3>미확인 정보</h3><ul><li v-for="(missing,index) in detail.analysis.missing_information" :key="index">{{ missing }}</li></ul><p v-if="!detail.analysis.missing_information.length" class="muted">분석에 기록된 미확인 항목 없음</p></template><p v-else>아직 저장된 분석이 없습니다. 원문 접수 상태는 유지됩니다.</p></section>
         <section v-if="detail.actions.length" class="panel"><h2>연결된 작업</h2><article v-for="action in detail.actions" :key="action.id"><h3>{{ action.status }} · {{ action.id }}</h3><p>{{ action.scope }}</p><p>작업 담당자 {{ person(action.assignee_id) }}</p><p v-if="action.status === 'COMPLETED'">작업 결과 제출 완료 · 사건 상태는 별도로 확인합니다.</p></article></section>
-        <section v-if="detail.handover" class="panel"><h2>교대 인수 요약</h2><p>{{ detail.handover.ack_status === 'ACKNOWLEDGED' ? '인수 완료' : '인수 확인 대기' }}</p><p v-if="detail.handover.is_stale">새 업무 내용 · 인계 재확인 필요</p><p class="muted">인수 상태와 AI 분석 최신성은 별개입니다.</p></section>
+        <HandoverSummary :summary="detail.handover" :owner-id="detail.owner_id" :assignee-ids="detail.actions.map(action => action.assignee_id)" @open="emit('openHandover', $event)" />
         <EvidencePanel :evidence="detail.evidence" />
       </div>
     </div>

@@ -101,7 +101,8 @@ def main():
     settings = Settings.from_env()
     settings.validate(worker=True)
     factory = create_session_factory(settings.database_url)
-    ports = FeaturePorts()
+    from app.features.handovers.service import refresh_handover_items
+    ports = FeaturePorts(handover_refresher=refresh_handover_items)
     while True:
         result = run_once(factory, settings, ports)
         if result is None:

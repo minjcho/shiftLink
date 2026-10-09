@@ -1,8 +1,8 @@
 # ShiftLink 개발 구현 문서
 
-v0.3 구현 계약 · 2026-10-09 · F1 구현 및 독립 검증 진행
+v0.3 구현 계약 · 2026-10-09 · F1·F3 구현 및 독립 검증 진행
 
-ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 찾고, 사람의 승인·작업 수행·교대 인수·최종 해결 확인까지 같은 사건으로 연결하는 서비스다. F1 실행 앱과 개발 명세를 포함한다. F1의 독립 구현·검증 상태는 [Seal 실행 기록](docs/specs/f1-intake-investigation/PROGRESS.md), 설치·실행·외부 기능 경계는 [F1 실행 안내](docs/F1_IMPLEMENTATION.md)를 따른다. 전체 기능 통합·실제 모델·배포 상태는 별도로 기록한다.
+ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 찾고, 사람의 승인·작업 수행·교대 인수·최종 해결 확인까지 같은 사건으로 연결하는 서비스다. F1 실행 앱과 개발 명세를 포함한다. F1의 독립 구현·검증 상태는 [Seal 실행 기록](docs/specs/f1-intake-investigation/PROGRESS.md), 설치·실행·외부 기능 경계는 [F1 실행 안내](docs/F1_IMPLEMENTATION.md)를 따른다. F3 구현과 실행 방법은 [F3 실행 안내](docs/F3_IMPLEMENTATION.md), 18개 완료 조건의 판정은 [F3 Seal 기록](docs/specs/f3-handover/PROGRESS.md)을 따른다. 전체 기능 통합·실제 모델·배포 상태는 별도로 기록한다.
 
 ## 먼저 읽을 문서
 

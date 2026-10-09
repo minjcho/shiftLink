@@ -26,6 +26,10 @@ def event_data(row):
     result["related_ids"] = {key: value for key, value in row.related_ids.items() if key in allowed_ids}
     if row.type not in {"incident_reported", "message_added", "request_answered", "rejected_input"}:
         result["payload"] = {}
+    elif row.type == "rejected_input" and row.payload.get("command") == "ack_handover":
+        # Keep the authorized rejection in the DB, not in a nonparticipant's
+        # Incident timeline: the input contains a restricted snapshot token.
+        result["payload"] = {"command": "ack_handover"}
     return result
 
 
@@ -219,8 +223,10 @@ def detail(tx, principal, incident_id, settings):
             continue
         revision = tx.get(HandoverRevision, (item.id, item.latest_revision))
         ack = tx.scalar(select(HandoverAck).where(HandoverAck.item_id == item.id, HandoverAck.revision == item.latest_revision))
+        previously_acknowledged = tx.scalar(select(HandoverAck.id).where(HandoverAck.item_id == item.id).limit(1)) is not None
         result["handover"] = {"id": handover.id, "item_id": item.id, "revision": item.latest_revision,
             "ack_status": "ACKNOWLEDGED" if ack else "PENDING", "snapshot_version": revision.snapshot_version if revision else None,
+            "is_resolved": incident.status == "RESOLVED", "previously_acknowledged": previously_acknowledged,
             "ack_applied_version": ack.ack_applied_version if ack else None,
             "is_stale": bool(revision and incident.version != (ack.ack_applied_version if ack else revision.snapshot_version)),
             "cutoff_at": handover.cutoff_at, "added_since_cutoff": incident.created_at > handover.cutoff_at}
