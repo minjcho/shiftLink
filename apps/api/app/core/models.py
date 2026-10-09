@@ -215,6 +215,7 @@ class Approval(Identity, Base):
     approved_payload_snapshot: Mapped[dict] = mapped_column(JSON)
     actor_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    __table_args__ = (UniqueConstraint("action_id", "action_revision", name="uq_approvals_action_revision"),)
 
 
 class Verification(Identity, Base):

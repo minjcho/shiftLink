@@ -124,7 +124,7 @@ class ToolExecutor:
             for document, chunk in rows:
                 if equipment.id not in document.equipment_ids:
                     continue
-                score = search_score(args.query, document.title + " " + chunk.text + " " + equipment.code, equipment)
+                score = search_score(args.query, document.title + " " + chunk.text, equipment)
                 if score:
                     ranked.append((-score, document.id, chunk.position, document, chunk))
             ranked.sort(key=lambda item: item[:3])

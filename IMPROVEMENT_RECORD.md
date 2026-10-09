@@ -24,3 +24,7 @@
 - 재현: 사람 명령이 Incident를 잠근 상태에서 F1 원본 검색 도구가 Job을 먼저 잡으면 사람의 Job NOWAIT 잠금이 실패했다.
 - 수정: 도구도 `lock_incident_graph` 후 `fence`를 실행한다. 이미 진행 중인 업무·검토 보류 상태는 최초 조사 준비에서 유지한다.
 - 결과: 원본 회귀 FAIL → 수정 회귀 PASS, PostgreSQL 전체 104 PASS. 화면 33 PASS, 실제 브라우저 fake 1 PASS. 실제 모델·제품 전체 통합은 NOT_RUN.
+
+## F1/F2 책임 충돌 수정 — 2026-10-09
+
+F2의 기존 stage_proposal 계약은 Action/event·Incident 상태를 저장하도록 했지만 F1은 호출 중 부모 상태 변경을 거부했다. F2는 Action만 저장하고 F1이 상태·이벤트·버전·최종 lease를 소유하도록 통일했다. readiness의 `verification_ready`와 F1 port의 `ready`도 경계에서 명시적으로 변환한다. 실제 finalizer→ORM→HTTP 검증과 lease 만료 rollback, 두 경합 완료, 초과 Action 거부를 포함한 신규 24개 및 전체 서버 233개가 통과했다.

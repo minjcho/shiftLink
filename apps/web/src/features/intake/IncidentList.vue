@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { IncidentStatusValues } from '../../lib/contracts';
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { api, Command, errorMessage, SessionChanged } from '../../lib/api';
 import type { Equipment, Incident, IntakeResult, Page } from '../../lib/types';
 import { label, person, time } from '../../lib/presentation';
@@ -20,20 +20,36 @@ const error = ref('');
 const loading = ref(false);
 const lastSuccess = ref<string | null>(null);
 let readGeneration = 0;
+let loadedPages = 1;
 const canSubmit = computed(() => equipmentId.value !== '' && text.value.trim() !== '' && !command.busy && !command.hasPending);
 watch(() => props.equipment, value => { if (!equipmentId.value && value.length) equipmentId.value = value[0].id; }, { immediate: true });
 async function refresh(cursor?: string): Promise<boolean> {
   const current = ++readGeneration;
+  const epoch = api.sessionEpoch;
+  const pageLimit = cursor ? 1 : loadedPages;
   const query = new URLSearchParams({ scope: scope.value });
   if (status.value) query.set('status', status.value);
   if (filterEquipment.value) query.set('equipment_id', filterEquipment.value);
-  if (cursor) query.set('cursor', cursor);
   loading.value = true;
   try {
-    const { data } = await api.request<Page<Incident>>(`/incidents?${query}`);
-    if (current !== readGeneration) return false;
-    items.value = cursor && items.value ? [...items.value, ...data.items] : data.items;
-    nextCursor.value = data.next_cursor;
+    const refreshed: Incident[] = [];
+    let next = cursor ?? null;
+    let pagesRead = 0;
+    // Follow fresh cursors across the loaded window, then publish it atomically.
+    // A later-page failure must keep the previous items and their matching cursor.
+    do {
+      if (next) query.set('cursor', next); else query.delete('cursor');
+      const { data } = await api.request<Page<Incident>>(`/incidents?${query}`);
+      if (current !== readGeneration || epoch !== api.sessionEpoch) return false;
+      refreshed.push(...data.items);
+      next = data.next_cursor;
+      pagesRead += 1;
+    } while (next && pagesRead < pageLimit);
+    const combined = cursor && items.value ? [...items.value, ...refreshed] : refreshed;
+    const seen = new Set<string>();
+    items.value = combined.filter(item => { if (seen.has(item.id)) return false; seen.add(item.id); return true; });
+    nextCursor.value = next;
+    loadedPages = cursor ? loadedPages + pagesRead : pagesRead;
     error.value = ''; lastSuccess.value = new Date().toISOString();
     return true;
   } catch (e) {
@@ -42,9 +58,13 @@ async function refresh(cursor?: string): Promise<boolean> {
   }
   finally { if (current === readGeneration) loading.value = false; }
 }
-watch([scope, status, filterEquipment], () => { items.value = null; nextCursor.value = null; lastSuccess.value = null; void refresh(); });
+function loadMore() {
+  if (!loading.value && nextCursor.value) void refresh(nextCursor.value);
+}
+watch([scope, status, filterEquipment], () => { items.value = null; nextCursor.value = null; lastSuccess.value = null; loadedPages = 1; void refresh(); });
 onMounted(() => void refresh());
-usePolling(refresh);
+onUnmounted(() => { readGeneration += 1; });
+usePolling(async () => { if (!loading.value) return refresh(); });
 async function submit(retry = false) {
   try {
     const result = retry ? await command.send<IntakeResult>(api) : await command.send<IntakeResult>(api, '/incidents', { equipment_id: equipmentId.value, text: text.value, observed_at: null });
@@ -82,7 +102,7 @@ async function review() {
       <p v-if="items === null && loading" role="status">사건 조회 중…</p>
       <div v-if="items !== null && items.length === 0" class="empty-state"><h3>해당하는 사건이 없습니다.</h3><p>현재 필터로 조회한 결과입니다.</p></div>
       <ul v-if="items?.length" class="incident-list"><li v-for="item in items" :key="item.id"><a :href="`/incidents/${item.id}`" @click.prevent="emit('open', item.id)"><div class="incident-card-top"><span class="identifier">{{ item.display_id }}</span><span class="badge">{{ label(item.status) }}</span></div><h3>{{ equipment.find(e => e.id === item.equipment_id)?.code ?? item.equipment_id }} · {{ item.title ?? '제보 기록' }}</h3><p v-if="item.waiting_for_input" class="attention">필수 질문 · 담당자 답변 대기</p><p v-if="item.review_required" class="attention">후속 검토 필요</p><p v-if="item.open_request_count !== undefined || item.unfinished_action_count !== undefined">미응답 질문 {{ item.open_request_count ?? '미수집' }} · 미완료 작업 {{ item.unfinished_action_count ?? '미수집' }}</p><p class="muted">현재 책임자: {{ person(item.owner_id) }}</p><small>최근 변경 {{ time(item.updated_at) }} · 업무 버전 {{ item.version }}</small></a></li></ul>
-      <button v-if="nextCursor" class="secondary wide" :disabled="loading" @click="refresh(nextCursor)">다음 사건 보기</button>
+      <button v-if="nextCursor" class="secondary wide" :disabled="loading" @click="loadMore">다음 사건 보기</button>
     </section>
   </div>
 </template>

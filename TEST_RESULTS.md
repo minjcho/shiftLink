@@ -154,3 +154,42 @@ harness가 생성 schema와 API/worker/Vue 프로세스를 정리했다. 원래 
 F0의 `lock_incident_graph → fence` 구현, 세션 교대 migration 0002, auth·모델, maintenance/live 단일 worker와 반려 사건의 조사 시작 제한을 보존했다. API client의 명시적 생성자 prefix 인자도 유지했다. F0의 공개 feature slot은 Promise<void> 계약을 유지하고 내부 재조회 결과 판단만 Promise<boolean>을 사용한다. 이 호환 보완 전 타입 검사에서 드러난 충돌을 고쳤으며 기존 시험의 기대값은 완화하지 않았다.
 
 이번 최종 결과도 local 검증이며 실제 모델·전체 F2/F3/F4 통합·새 Compose 기동·배포·제출은 수행하지 않았다. F0의 과거 Compose 실행 결과는 위 원래 기록으로 보존한다.
+
+## PR #6 후속 리뷰 네 항목 — 2026-10-09
+
+기준은 F0 통합과 앞선 다섯 리뷰 수정이 포함된 `c46d490`이다. [후속 명세](docs/specs/f1-review-followups/SPEC.md)의 세 동작 결함을 고쳤고, 아직 기본 실행에 연결되지 않은 F2 어댑터 정합성은 [이슈 #11](https://github.com/minjcho/shiftLink/issues/11)로 남겼다. 아래 결과는 이 후속 변경 작업 트리에서 직접 실행했으며 새 Seal 완료 기록이 아니다.
+
+| 검사 | 결과 | 관측 범위 |
+| --- | --- | --- |
+| `PYTHONPATH=apps/api .venv/bin/python -m pytest -q tests/backend` | 133 PASS | 기존 124 + 혼합 참조 3 + 검색 관련성 6. 실제 HTTP·PostgreSQL 격리 schema |
+| `npm --prefix apps/web run test` | 70 PASS | 기존 65 + 목록 페이지 갱신 5. 페이지 순서·부분 실패·조회 경합·필터·세션 |
+| `npm --prefix apps/web run build` | PASS | Vue 타입 검사·Vite 빌드 |
+| `PYTHONPATH=apps/api .venv/bin/python scripts/export_contracts.py --check` | PASS | 공유 생성 타입 일치 |
+| `VITE_API_BASE_URL=/api/v1 PYTHONPATH=apps/api .venv/bin/python scripts/f1_browser.py` | 3 PASS | 기존 재시작/답변·응답 유실/receipt + 실제 20개 초과 사건의 cursor 페이지·폴링 |
+| `VITE_API_BASE_URL=/gateway/api/v1/ PYTHONPATH=apps/api .venv/bin/python scripts/f1_browser.py` | 3 PASS | 같은 세 흐름의 비기본 prefix·끝 슬래시 정규화 |
+| 실제 모델·F2/F3/F4 전체 제품 통합·새 Compose 기동·배포·제출 | NOT_RUN | 모델은 fake. 기존 직접 검증과 외부 통합을 구분 |
+
+혼합 참조 시험은 수정 전 세 경우 모두 202 저장으로 실패했다. 수정 후에는 `422 VALIDATION_ERROR`이고 Message·Request·Incident·Event·Job·CommandReceipt 전체 snapshot이 같다. 같은 멱등 키로 정상 답변·정정·일반 기록을 보내면 기존 동작대로 저장된다.
+
+검색 시험은 수정 전 여섯 중 다섯이 실패했다. 실제 제목·본문에 일치가 없는 동일 설비 SOP가 조회 코드 또는 별칭 때문에 검색됐다. 수정 후 EMPTY/빈 근거를 확인하며, 실제 제목의 설비 코드·본문·별칭 일치와 승인·사업장·설비 범위, 동점 순서·개수·발췌 상한·ERROR 처리를 유지한다. OR 검색 의미는 바꾸지 않았다.
+
+목록 회귀는 수정 전 다음 페이지가 폴링 뒤 사라짐을 확인했다. 수정 후 최신 cursor로 읽은 페이지 수만큼 갱신하며, 뒤 페이지 실패 시 기존 전체 목록·cursor·성공 시각을 보존한다. 실제 브라우저에서는 worker 처리가 끝난 20개 초과 사건을 읽고, 다음 폴링의 cursor 응답 완료와 성공 조회 시각 변경까지 기다린 후 전체 개수와 서버 순서를 대조한다. 코드 검토에서 요청 발생만 기다리던 초기 시험을 발견해 응답 반영까지 기다리도록 보강한 뒤 두 prefix에서 재실행했다.
+
+이슈 #11은 격리 PostgreSQL과 시험용 F2 어댑터로 별도 재현했다. 유효한 MAIN_FOLLOWUP을 반환하면서 EXTRA_FOLLOWUP도 저장하면 Action 두 행과 Incident ACTION_REQUIRED, Job/AgentRun SUCCEEDED가 함께 남았다. 현재 API/worker 기본 FeaturePorts는 F2 미연결이므로 이번에는 코드 수정 없이 전체 Action 집합 검증과 원자적 rollback 조건을 이슈에 기록했다. 이 문제를 해결된 것으로 표시하지 않는다.
+
+별도 읽기 전용 검토에서 세 제품 수정의 추가 확정 결함은 발견하지 못했다. Spec의 변경 전 설명을 기준 SHA로 한정하고 AC-1~6·유지 시나리오·결정 출처·실제 경계와 범위를 대조했다. 미결정 사항은 없으며, 저장 데이터·설정 형식·migration 변경은 적용 대상이 아니다. 서버에는 기존 Starlette/httpx deprecation warning 1개가 남는다. 브라우저 harness는 시험 schema와 API/worker/Vue 프로세스를 정리했다.
+
+## F2/F1 서버 통합 직접 검증 — 2026-10-09
+
+- 기준: F1 #6 `c46d490` + F2 #5 `3670cd2` 서버 로직 + `codex/f2-on-f1` 수정. 기존 이력/Seal 결과와 별도 직접 실행이다.
+- 환경: Python 3.13, PostgreSQL 17(기존 시험 전용 서버, 매 시험 새 격리 schema), Node 25.9.0. 업무 DB와 volume은 수정하지 않았다.
+- `F2_TEST_DATABASE_URL=<시험 DB> /private/tmp/shiftlink-f0-on-f1/.venv/bin/python -m pytest -q tests/backend apps/api/tests/actions`: **233 PASS, 0 SKIP**, 42.07초. 기존 F1/F0 124 + F2 독립 85(메모리/HTTP 계약 72·별도 stub 테이블 DB 제약 13) + 신규 실제 ORM/HTTP 24.
+- 신규 24: 실제 F1 finalizer→F2 확정, 권한/두 버전, 빈 작업·미답변·승인/근거 결함, 멱등/충돌, 후속 인계 hook 실패 rollback, 초과 Action 삽입 거부, 최종 lease 만료 rollback, 동시 완료, REJECT 차단, 늦은 결과·불변 fixture snapshot, API/worker 공통 조립.
+- 위 24 중 1개는 별도 uvicorn 프로세스·loopback HTTP·PostgreSQL로 제보/승인/착수/결과를 수행하고 API 프로세스 재시작 후 세션·같은 Action/결과·정확한 receipt 재사용을 확인한다. 모델 단계만 합성 후보/결과를 명시적으로 주입한다. 실제 모델 호출 증거는 아니다.
+- 기존 migration 시험이 0001→head(0003)→0001→head 왕복, 기존 업무/legacy session 보존, ORM metadata drift 없음을 확인했다. 신규 실제 DB 시험은 승인 revision 중복 INSERT 거부를 확인했다.
+- `python scripts/export_contracts.py --check`: PASS. 첫 시도는 Web 하위 경로에서 실행해 파일 경로 오류가 있었으며 저장소 루트에서 재실행해 통과했다.
+- `npm ci`, `npm test`, `npm run build`: 설치 완료, 기존 Web **65 PASS**, vue-tsc·Vite production build PASS. Node 25에 대한 일부 전이 의존성 engine 경고와 기존 lockfile audit 3건(중간1·심각2)이 출력됐다. 이번 작업에서 의존성/lockfile은 변경하지 않았다.
+- `git diff --check`: PASS.
+- 중간 실패: 신규 다른 사건 근거 fixture를 만들 때 Incident INSERT 전에 Evidence FK UPDATE가 실행됐다. fixture의 부모 INSERT를 먼저 flush해 수정했고 전체 재검증 233 PASS. 생산 코드 결함으로 기록하지 않는다.
+- 잔존 경고: 기존 Starlette/httpx TestClient deprecation 1개.
+- **NOT_RUN:** F2 패널 브라우저 E2E, F3 실제 인수와 전체 T8, F4 RESOLVE/RETURN·실제 해결 사례 생성, L1a/L1b/L2/L3 실제 모델, 외부 배포·접수.

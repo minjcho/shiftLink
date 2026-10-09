@@ -131,6 +131,10 @@ def finalize(session_factory, identity: RunIdentity, execution, ports: FeaturePo
                 UUID(result["action_id"])
             except ValueError as exc:
                 raise DecisionRejected("The Action boundary returned an invalid ID") from exc
+            current_ids = set(tx.scalars(select(Action.id).where(Action.incident_id == incident.id)))
+            expected_ids = set(previous) | {result["action_id"]}
+            if current_ids != expected_ids:
+                raise DecisionRejected("The Action boundary changed more than the returned Action")
             action = tx.get(Action, result["action_id"])
             if (action is None or action.incident_id != incident.id or action.action_generation != 1
                     or action.version != result["action_version"]):

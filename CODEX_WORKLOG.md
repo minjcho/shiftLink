@@ -72,3 +72,23 @@
 - 최초 리뷰 수정 commit 59c4ce8의 push는 원격 F0 PR #9 병합 때문에 거부됐다. 백업 ref를 남기고 19b589c 위로 통합했다. 양쪽 문서 기록과 기존 F0 상태를 모두 보존했다.
 - 도구 잠금 구현은 F0 공통 graph 잠금 그대로 유지하고 이번 실제 교착·lease 회귀를 연결했다. API 생성자 인자와 세션·worker·migration·공용 타입·상세 슬롯도 유지했다. 새 입력 예산을 Compose API/worker 환경에 전달했다.
 - 8ef1dba 통합 후 서버124·타입계약·화면65 PASS. 공개 슬롯의 Promise<void> 호환을 34b154a에서 보완해 타입 빌드 PASS, 기본/비기본 경로 브라우저 각각2 PASS까지 확인했다. 미실행 범위와 소스별 검사 구분은 TEST_RESULTS에 남겼다.
+
+## PR #6 후속 리뷰 분류와 수정 — 2026-10-09
+
+- 요청: “review댓글 달리지 않은 아랫부분들 중에 정합성 이슈나 이런거는 issue만 추가해주고 바로 수정이 필요한 부분들은 판단해서 수정 진행해줘 @Spec”. 기존 답변이 있는 다섯 리뷰 이후의 네 항목을 확인했다.
+- `c46d490` 위에서 입력·목록·검색 세 건의 수정 전 실패를 재현하고 고쳤다. MessageBody 혼합 참조를 저장 전 거부하고, 목록은 읽은 페이지 범위를 최신 cursor로 전부 갱신하며, 문서 검색에서 합성 설비 코드를 제거했다.
+- 별도 후속 Spec에 변경 전 사실·수정/유지 범위·결정 출처·AC-1~6을 정리했다. 도메인/API/Agent/UI 설명을 맞췄다. 공유 enum·DTO·migration, 기존 Spec과 Seal 기록은 보존했다.
+- F2 어댑터의 추가 Action 저장은 시험용 adapter·실제 PostgreSQL에서 재현했으나 기본 실행 미연결이므로 이슈 #11로만 등록했다. 통합 전 전체 집합 검사·rollback·실제 adapter 시험 조건을 남겼다.
+- 직접 검증은 서버133·화면70·타입계약·빌드와 실제 브라우저 기본3/비기본3 PASS다. 모델 fake·실제 HTTP/DB·미실행 제품 통합을 구분하며, 상세는 TEST_RESULTS를 따른다.
+- 읽기 전용 코드 검토의 권장에 따라 브라우저 시험의 완료 대기를 강화하고 Spec 기준 시점을 명시했다. 리뷰 스레드는 자동 해결하지 않는다. PR #6 기존 소스 브랜치에 반영하며 병합·배포는 수행하지 않는다.
+
+## F2 서버 실연결 — 2026-10-09
+
+요청: F4 전에 F2 연결 계약을 수정하고 F1 PR 업데이트를 작업 중 확인한다.
+
+- 별도 worktree `/private/tmp/shiftlink-f2-on-f1`, 브랜치 `codex/f2-on-f1`에서 구현. 원래 feature/f0-foundation과 다른 worktree는 보존.
+- 기준 F1 c46d490·F2 3670cd2. 작업 중 PR #6 HEAD를 반복 조회했고 확인 시점에 새 커밋 없음. 지속 백그라운드 감시 기능은 설치하지 않음.
+- F2 Action-only staging·ORM adapter·실제 세션/명령 receipt·준비 검사 변환, API/worker 생산 조립, 승인 revision UNIQUE 후속 migration, finalizer 추가 Action 차단. 기존 DB schema 중복 생성 없음.
+- 실제 실행: pytest 233 PASS, 기존 Web 65 PASS·build·생성 계약·diff 검사 PASS. uvicorn HTTP와 프로세스 재시작 포함. 상세는 TEST_RESULTS의 F2/F1 절.
+- 사람 검토: 대기. F3/F4/live/배포·제출은 수행하지 않음.
+- 대화 기록: 계획 단계 미저장 사실을 명시하고 확인 가능한 로컬 세션의 사용자·표시된 Codex 원문만 docs/history에 추가. 비밀·내부 추론·도구 원문은 제외.

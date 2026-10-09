@@ -99,3 +99,42 @@ test('review fix: committed intake with a lost response survives failed/successf
   expect(incident.latest_job.id).toBe(posts[0].result.job_id);
   await testInfo.attach('review-receipt-recovery.json', { body: JSON.stringify({ apiBase, posts, before: before.length, after: after.length }, null, 2), contentType: 'application/json' });
 });
+
+test('review fix: real cursor pages remain visible after list polling', async ({ page }) => {
+  await page.goto('/incidents');
+  await page.getByLabel('데모 계정 전환').selectOption('reporter');
+  await page.getByRole('button', { name: '전환', exact: true }).click();
+  await expect(page.getByLabel('제보 원문', { exact: true })).toBeEnabled();
+  const jobs: string[] = [];
+  for (let index = 0; index < 22; index += 1) {
+    const response = await page.request.post(`${apiBase}/incidents`, {
+      headers: { Origin: new URL(page.url()).origin, 'Idempotency-Key': crypto.randomUUID() },
+      data: { equipment_id: '00000000-0000-4000-8000-000000000103', text: `페이지 유지 확인 ${index}`, observed_at: null },
+    });
+    expect(response.status()).toBe(202);
+    jobs.push((await response.json()).data.job_id);
+  }
+  // Let the real worker finish so changes in updated_at do not move the cursor window.
+  await expect.poll(async () => {
+    const states = await Promise.all(jobs.map(async id => (await (await page.request.get(`${apiBase}/jobs/${id}`)).json()).data.status));
+    return states.every(state => state === 'SUCCEEDED');
+  }, { timeout: 30000 }).toBe(true);
+  const expected = (await (await page.request.get(`${apiBase}/incidents?scope=all&limit=100`)).json()).data.items;
+  expect(expected.length).toBeGreaterThan(20);
+  expect(expected.length).toBeLessThanOrEqual(40);
+  await page.reload();
+  await expect(page.locator('.incident-list > li')).toHaveCount(20);
+  await page.getByRole('button', { name: '다음 사건 보기', exact: true }).click();
+  await expect(page.locator('.incident-list > li')).toHaveCount(expected.length);
+  const freshness = page.locator('.incidents-section .freshness');
+  const previousSuccess = await freshness.textContent();
+  const refreshedPage = await page.waitForResponse(response => {
+    const url = new URL(response.url());
+    return response.request().method() === 'GET' && url.pathname === `${apiBase}/incidents` && url.searchParams.has('cursor');
+  });
+  expect(refreshedPage.status()).toBe(200);
+  await refreshedPage.finished();
+  await expect(freshness).not.toHaveText(previousSuccess!);
+  await expect(page.locator('.incident-list > li')).toHaveCount(expected.length);
+  await expect(page.locator('.incident-list .identifier')).toHaveText(expected.map((item: { display_id: string }) => item.display_id));
+});
