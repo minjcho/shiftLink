@@ -5,3 +5,11 @@
 .env
 .env.*
 !.env.example
+
+# Local build and test artifacts
+__pycache__/
+.pytest_cache/
+node_modules/
+*.tsbuildinfo
+dist/
+.venv/
