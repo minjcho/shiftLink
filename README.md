@@ -58,6 +58,7 @@ Web `http://127.0.0.1:5173`, API `http://127.0.0.1:8000`. 기존 `.env`는 보�
 | [14 도입과 가치](docs/14_PILOT_AND_VALUE.md) | 파일럿·현장 가설·비용과 시간 측정 |
 | [15 제출 절차](docs/15_SUBMISSION_RUNBOOK.md) | 버전 동결·접근 확인·실제 접수 확인 |
 | [17 F0 실행·연결](docs/17_F0_FOUNDATION.md) | F1 기반 Compose·세션·worker·migration·기능 연결 |
+| [16 F2 구현 인계](docs/16_F2_INTEGRATION.md) | 구현 범위·F0/F1 연결 계약·독립 시험·남은 통합 |
 | [아키텍처](docs/ARCHITECTURE.md) / [Mermaid](docs/ARCHITECTURE.mmd) | 구성요소·실행 경계·기능 간 연결 |
 | [환경 설정](docs/ENVIRONMENT.md) | 환경변수·비밀값·실행 전 점검 |
 | [진행](PROGRESS.md) / [시험 결과](TEST_RESULTS.md) | 현재 상태·실제 실행 결과 |
