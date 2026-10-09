@@ -53,6 +53,10 @@ F1 PR #6에 F0 보강 PR #9가 병합됐다. #8의 독립 schema·worker·화면
 
 최신 통합 서버 243 PASS(실제 DB와 독립 계약 시험 구분은 TEST_RESULTS), 기존 Web 70 PASS·타입/빌드·생성 계약 검사 PASS. 별도 uvicorn 프로세스의 실제 HTTP와 재시작 후 세션·결과·receipt 보존을 확인했다. F2 전체 DONE은 아니며 F4 사람 검증·F3 인수·live·브라우저 작업 패널은 후속이다.
 
+## F2 리뷰 보완·병합 준비 — 2026-10-09
+
+PR #5의 OpenAPI 필수 헤더 누락과 완료 입력 상한을 보완했다. 서버 249 PASS(기존243+회귀6), 생성 계약 검사 PASS. 사용자 요청에 따라 시간 제약으로 작업 패널 실제 연결·전체 전주기/live 검증은 [이슈 #16](https://github.com/minjcho/shiftLink/issues/16)으로 남긴다. Worker Lock #10 및 F1 #13/#14/#15는 기존 이슈를 유지한다. F2 전체 완료나 해당 결함 해결을 뜻하지 않는다.
+
 ## F4 구현·직접 검증 — 2026-10-09
 
 F2 `ff1fb4e` 위에 공통 준비 검사를 재사용한 RESOLVE/RETURN, 불변 case 조회, 검증/이력 슬롯을 연결했다. 현재 owner·버전·멱등성·반려 보존·원자성·늦은 입력을 검증했다. 서버 전체 276 PASS(실제 F3 export 통합 3개·F2 독립 DB 제약 13개 포함), Web 78 PASS, 타입/빌드 PASS, F4 브라우저 기본/변경 prefix 각 2 PASS.

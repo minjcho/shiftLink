@@ -269,6 +269,16 @@ Python 실행에는 Starlette의 httpx TestClient deprecation 경고 1개가 있
 - 서버 시험은 코드 동일성 확인으로 이전 243 PASS 결과를 유지하며 이번 턴에 재실행하지 않았다.
 - 화면 슬롯 연결·F3/F4 전체 통합·실제 모델은 후속이다. PR #5는 F1 브랜치를 대상으로 하는 Draft로 유지한다.
 
+## F2 PR #5 리뷰 보완 — 2026-10-09
+
+승인·착수·완료 production route의 필수 Idempotency-Key를 OpenAPI에 선언하고 공통 명령에 명시적으로 전달했다. 완료 result는 20,000자, evidence_refs는 100개로 제한했다.
+
+- 실제 PostgreSQL 17 / Python 3.13: `F2_TEST_DATABASE_URL=<local test DB> /private/tmp/shiftlink-f0-on-f1/.venv/bin/python -m pytest -q` → **249 PASS, 0 SKIP**, 47.77초. 기존 243개 + 리뷰 회귀 6개.
+- 회귀: 세 경로 OpenAPI 필수 헤더·헤더 누락 422, 결과/근거 초과 입력 422 및 DB/receipt 무변경, 최대 경계값 수용·원문 보존.
+- `python scripts/export_contracts.py --check`, `git diff --check`: PASS.
+- Web 수정 없음; 이번 Web 재실행 NOT_RUN(이전 공통70/F2 17 PASS 유지). 실제 모델·브라우저 전체 전주기·배포 NOT_RUN.
+- 시간 제약으로 미완료 범위는 이슈 #16, Worker Lock 등 기존 #10/#13/#14/#15에서 추적한다. 해당 이슈는 이 시험의 해결 범위가 아니다.
+
 ## F4 사람 검증·해결 이력 직접 검증 — 2026-10-09
 
 - 실행 코드: `978b12cdd4ba602e32dc823f86619a26714e861e`와 동일한 작업 트리. 기반 F2 `ff1fb4e`/F1 `7072e63`. 문서 커밋은 별도다.

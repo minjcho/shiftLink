@@ -208,7 +208,7 @@ PROPOSED 상태와 현재 owner supervisor를 확인한다. APPROVE는 승인 sn
 }
 ```
 
-IN_PROGRESS·assignee·승인 내용과 현재 상태를 확인한다. result는 필수이며 서버가 작성자·시각이 있는 Message와 completion_report Evidence를 만든다. evidence_refs는 추가 기존 근거이며 없어도 결과 원문 근거는 생성된다. Action COMPLETED 이후 종료 준비 서비스를 호출한다.
+IN_PROGRESS·assignee·승인 내용과 현재 상태를 확인한다. result는 공백이 아닌 필수 문자열(최대 20,000자)이며 evidence_refs는 최대 100개다. 초과 입력은 422 VALIDATION_ERROR로 거부한다. 서버가 작성자·시각이 있는 Message와 completion_report Evidence를 만든다. evidence_refs는 추가 기존 근거이며 없어도 결과 원문 근거는 생성된다. Action COMPLETED 이후 종료 준비 서비스를 호출한다.
 
 응답은 `action_id, action_status=COMPLETED, action_version, result_message_id, completion_evidence_id, incident_status, incident_version, verification_ready, unmet_requirements[]`다. 조건 충족 시 PENDING_VERIFICATION, 아니면 아직 해결 전임을 표시한다. 정상 완료의 검증 준비에 추가 모델 호출은 필요하지 않다. 결과 제출은 실제 현장의 작업 수행을 독립적으로 검증한 증거가 아니다.
 
