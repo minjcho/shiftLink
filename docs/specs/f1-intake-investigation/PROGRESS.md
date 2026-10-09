@@ -2,7 +2,7 @@
 
 ## 현재
 
-- 확인 시각: 2026-10-09T12:44:19.495319+09:00
+- 확인 시각: 2026-10-09T12:45:34.461880+09:00
 - 기록 head: seq 3 (18bd0a535250), 상태 blocked, 완료 기록 없음.
 - 현재: F1 앱·검사·환경 구성의 WIP를 저장했다. 34개 AC의 ha baseline/current 검증은 아직 없다.
 - 막힘: AC-33 native Chromium이 macOS MachPortRendezvous 권한 거부(1100)로 실행되지 않았다. Seal의 권한 오류 재시도 금지에 따라 중단했다.
@@ -83,4 +83,97 @@
 
 ### ha status
 
-상태 원문 기록 대기.
+## ha status: docs/specs/f1-intake-investigation
+
+- status: **blocked** (exit 3)
+- completion record: none
+- assurance: local (an agent with the same user permissions can change checks and records)
+- check author: executor
+- record head: seq 3 (18bd0a535250)
+- rules: run-rules/1; skill: seal 0.1.6 (claimed); ha: 0.1.0-dev
+- code: 0fbdbac19361, tree clean: no; goal digest: bee32e2097fc
+
+### Criteria
+
+| ID | kind | required | satisfied | reason | records | attempts |
+| --- | --- | --- | --- | --- | --- | --- |
+| AC-1 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-2 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-3 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-4 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-5 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-6 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-7 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-8 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-9 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-10 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-11 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-12 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-13 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-14 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-15 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-16 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-17 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-18 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-19 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-20 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-21 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-22 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-23 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-24 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-25 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-26 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-27 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-28 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-29 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-30 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-31 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-32 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-33 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+| AC-34 | change | yes | no | criterion_missing | — | checks 0 (fail 0, error 0), baselines 0 (unexpected pass 0, error 0), stale 0 |
+
+### Reasons
+
+- `criterion_missing` (executor) AC-1
+- `criterion_missing` (executor) AC-2
+- `criterion_missing` (executor) AC-3
+- `criterion_missing` (executor) AC-4
+- `criterion_missing` (executor) AC-5
+- `criterion_missing` (executor) AC-6
+- `criterion_missing` (executor) AC-7
+- `criterion_missing` (executor) AC-8
+- `criterion_missing` (executor) AC-9
+- `criterion_missing` (executor) AC-10
+- `criterion_missing` (executor) AC-11
+- `criterion_missing` (executor) AC-12
+- `criterion_missing` (executor) AC-13
+- `criterion_missing` (executor) AC-14
+- `criterion_missing` (executor) AC-15
+- `criterion_missing` (executor) AC-16
+- `criterion_missing` (executor) AC-17
+- `criterion_missing` (executor) AC-18
+- `criterion_missing` (executor) AC-19
+- `criterion_missing` (executor) AC-20
+- `criterion_missing` (executor) AC-21
+- `criterion_missing` (executor) AC-22
+- `criterion_missing` (executor) AC-23
+- `criterion_missing` (executor) AC-24
+- `criterion_missing` (executor) AC-25
+- `criterion_missing` (executor) AC-26
+- `criterion_missing` (executor) AC-27
+- `criterion_missing` (executor) AC-28
+- `criterion_missing` (executor) AC-29
+- `criterion_missing` (executor) AC-30
+- `criterion_missing` (executor) AC-31
+- `criterion_missing` (executor) AC-32
+- `criterion_missing` (executor) AC-33
+- `criterion_missing` (executor) AC-34
+- `worktree_dirty` (executor): uncommitted changes outside the bundle documents; commit or revert them
+- `task_open` (executor): required tasks not done or dropped in PROGRESS.md: T001, T002, T003, T004, T005, T006, T007, T008, T009, T010, T011, T012
+- `blocked` (blocked): blocked since seq 3 (cause: permission)
+
+### Budget
+
+- window from seq 2: 0/50 runs, 655/14400 seconds
+
+위 상태는 F1 구현 커밋 `0fbdbac`에서 확인했다. 별도 F3 미추적 파일 때문에 tree clean은 no이며, 해당 파일은 이번 커밋에 포함하지 않았다. 이 중단 보고를 저장하는 후속 커밋은 실행 번들만 변경한다.
