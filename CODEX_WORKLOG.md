@@ -152,3 +152,7 @@
 - 별도 `codex/f4-verification` worktree에서 작성하고 F2의 검증된 서버 커밋 ff1fb4e를 통합했다. 진행 중 F2 worktree·사용자 변경은 수정하지 않았다.
 - 공통 readiness/ORM/receipt 재사용, RESOLVE/RETURN 원자 저장, 불변 case와 과거 검색, 검증 UI/재시도/재조회, 실제 F3 export 및 브라우저 시험을 구현했다.
 - 실행 기준 978b12c. 서버 276/Web78/브라우저 기본2·prefix2·빌드·생성 계약 PASS. 상세 경계와 NOT_RUN은 TEST_RESULTS 및 docs/F4_IMPLEMENTATION.md. 실제 모델·배포·제출 작업 없음.
+
+## F4 리뷰 준비 — 2026-10-09
+
+사용자 요청 “그러면 리뷰 받자”에 따라 최신 main c726425를 F4에 병합하고 문서3개 충돌을 기록 보존 방식으로 정리했다. 서버282 PASS, 빌드·생성 타입·공백 검사 PASS. F2 #5가 이미 머지되어 PR #12 대상을 main으로 바꾸고 Ready for review 전환을 통해 기존 Codex 자동 리뷰를 요청하는 단계다. F3 코드·원격 브랜치는 수정하지 않았다.

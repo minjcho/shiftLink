@@ -301,3 +301,10 @@ Python 실행에는 Starlette의 httpx TestClient deprecation 경고 1개가 있
 - `6b33370`에서 원격 minjcho `92cab3f`를 병합했다. 원래 F2 독립 패널/작업 이력을 보존했으며 문서 append 충돌은 양쪽 기록을 모두 유지했다.
 - `978b12c`와 비교해 서버·F4 화면·F4 시험/harness 소스의 변경 없음. 전체 시험을 불필요하게 반복하지 않고 추가된 F2 패널이 포함된 공통 vue-tsc/Vite 빌드를 실행해 PASS를 확인했다. 산출물 JS hash도 동일했다.
 - `git diff --check origin/minjcho...HEAD`: PASS. F2를 제외한 F4 기능 diff만 PR에 표시한다.
+
+## F4 최신 main 반영·리뷰 준비 — 2026-10-09
+
+- 기준: main c726425(F2 리뷰 보완 f053c58 포함)를 e551304에 병합. 충돌한 CODEX_WORKLOG/PROGRESS/TEST_RESULTS의 양쪽 기록을 보존했다. 공통 명령의 명시적 멱등 키 전달과 F2 완료 입력 상한을 유지한다.
+- `SHIFTLINK_F3_FEATURE_ROOT=<기존 5486b8f export> F2_TEST_DATABASE_URL=<시험 DB> python -m pytest -q`: **282 PASS, 0 SKIP**, 66.93초. 이전276 + main의 F2 리뷰 회귀6. 테스트 소스 기준 e551304. 실제 PostgreSQL·F3 원본 서비스 연결이며 모델 호출 없음.
+- `npm --prefix apps/web run build`, `python scripts/export_contracts.py --check`, `git diff --check origin/main...HEAD`: **PASS**. 기존 Starlette/httpx 경고1개.
+- 화면 소스는 변경하지 않아 기존 Web78/브라우저 기본2·prefix2 PASS 기록을 유지하며 이번에는 재실행하지 않았다. 실제 모델·전체 T8·F3 제품 통합·배포는 NOT_RUN을 유지한다.
