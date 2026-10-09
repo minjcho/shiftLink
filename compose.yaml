@@ -1,0 +1,86 @@
+name: shiftlink-f1
+x-api: &api
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+  environment: &api-env
+    APP_ENV: ${APP_ENV:-development}
+    APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Seoul}
+    DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+    SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+    SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+    DEMO_ACCOUNT_SWITCH_ENABLED: ${DEMO_ACCOUNT_SWITCH_ENABLED:-false}
+    ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
+    APP_COMMIT_SHA: ${APP_COMMIT_SHA:-}
+    WORKING_TREE_DIRTY: ${WORKING_TREE_DIRTY:-}
+    AGENT_MODE: ${AGENT_MODE:-live}
+    AGENT_RUN_DEADLINE_SECONDS: ${AGENT_RUN_DEADLINE_SECONDS:-60}
+    AGENT_MAX_MODEL_CALLS: ${AGENT_MAX_MODEL_CALLS:-7}
+    AGENT_MAX_TOOL_CALLS: ${AGENT_MAX_TOOL_CALLS:-6}
+    AGENT_MAX_OUTPUT_TOKENS: ${AGENT_MAX_OUTPUT_TOKENS:-2000}
+    SEARCH_MAX_CHUNKS: ${SEARCH_MAX_CHUNKS:-5}
+    SEARCH_MAX_CHUNK_CHARS: ${SEARCH_MAX_CHUNK_CHARS:-2000}
+    JOB_LEASE_SECONDS: ${JOB_LEASE_SECONDS:-90}
+    JOB_MAX_ATTEMPTS: ${JOB_MAX_ATTEMPTS:-3}
+    WORKER_POLL_INTERVAL_SECONDS: ${WORKER_POLL_INTERVAL_SECONDS:-2}
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-shiftlink}
+      POSTGRES_USER: ${POSTGRES_USER:-shiftlink}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  migrate:
+    <<: *api
+    command: ["alembic", "-c", "apps/api/alembic.ini", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+  seed:
+    <<: *api
+    command: ["python", "-m", "app.core.seed"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  api:
+    <<: *api
+    ports: ["127.0.0.1:${APP_PORT:-8000}:8000"]
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  worker:
+    <<: *api
+    environment:
+      <<: *api-env
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_AGENT_MODEL: ${OPENAI_AGENT_MODEL:-}
+    command: ["python", "-m", "app.agent.worker", "--mode", "${WORKER_MODE:-maintenance}"]
+    depends_on:
+      api:
+        condition: service_healthy
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      SHIFTLINK_API_PROXY: http://api:8000
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+      VITE_POLL_INTERVAL_MS: ${VITE_POLL_INTERVAL_MS:-2000}
+    ports: ["127.0.0.1:${WEB_PORT:-5173}:5173"]
+    depends_on:
+      api:
+        condition: service_healthy
+volumes:
+  postgres_data:

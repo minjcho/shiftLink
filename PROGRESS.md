@@ -7,11 +7,11 @@
 | ID | 작업 | 초기 담당 | 상태 | 다음 확인 |
 |---|---|---|---|---|
 | DOC | 구현 문서·환경 예시·ignore 규칙 | Codex 작성, 팀 검토 대기 | DONE | 정적 검사 완료, 실제 담당 착수 확인 |
-| F0 | 공통 실행 기반·계약 | 재곤 통합, 민재 검토 | IN_PROGRESS | F1용 최소 DB·세션·seed·receipt 제공; 전체 F0 완료 별도 |
+| F0 | 공통 실행 기반·계약 | 재곤 통합, 민재 검토 | IN_PROGRESS | F1 기준 Compose·세션·worker·타입·화면 slot 보강, PR 검토 대기 |
 | F1 | 접수·AI 조사·질문과 답변 | 재곤 | [Seal 판정](docs/specs/f1-intake-investigation/PROGRESS.md) | 직접 서버 88개·화면 30개·실제 브라우저 및 빌드 PASS; live/타 기능 전체 통합은 별도 |
-| F2 | 작업 제안 확정·승인·착수·결과 | 민재 | NOT_STARTED | F1 finalizer와 Action 생성 서비스 연결 |
-| F3 | 교대 인계·인수 | 재곤 | NOT_STARTED | snapshot·ACK·owner 이전 |
-| F4 | 최종 검증·해결 이력 | 민재 | NOT_STARTED | 최신 조건의 사람 검증과 case |
+| F2 | 작업 제안 확정·승인·착수·결과 | 민재 | IN_PROGRESS | PR #5 독립 구현, F1 기준 adapter·화면 연결 대기 |
+| F3 | 교대 인계·인수 | 재곤 | IN_PROGRESS | 별도 PR #7, 통합 대기 |
+| F4 | 최종 검증·해결 이력 | 민재 | IN_PROGRESS | 준비 검사만 PR #5, 사람 검증·case 후속 |
 | F5 | 전주기 검증·제출 | 공동 | NOT_STARTED | T/L 실행·배포·접수 근거 |
 | Phase 2/3 | 판단 강화·확장 | 미배정 | NOT_STARTED | Phase 1 통과 전 착수하지 않음 |
 
@@ -19,7 +19,7 @@
 
 ## 다음 구현 작업
 
-사용자 “@Seal F1부분만 진행해줘”에 따라 F1과 그 최소 실행 기반을 구현한다. 다음 통합은 F2/F4 서비스 주입과 실제 모델 L1a/L1b/L2/L3이며 F3 생성·ACK 구현은 별도 요청 범위다. 독립 F1 완료와 기존 기능 전체 완료를 구별한다.
+F1 PR #6을 공통 기준으로 F0 보강 PR을 검토한다. #8의 독립 schema·worker·화면을 중복 병합하지 않는다. F2/F3/F4는 [새 F0 연결 계약](docs/17_F0_FOUNDATION.md)에 맞춰 ORM Session·FeaturePorts·상세 slot을 연결한다. 실제 모델 L1a/L1b/L2/L3와 F1 미해결 리뷰 3건은 별도다. 기존 Seal 완료 기록을 이번 F0 검증으로 바꾸지 않는다.
 
 ## 시간순 기록
 
@@ -29,6 +29,8 @@
 | 2026-10-09 | 문서 작성 | ZIP v0.2 구성을 참고해 v0.3 기능별 구현 문서와 .env.example 작성 | 문서·환경 정적 검사 완료. 앱 코드 미작성 |
 | 2026-10-09 | 계약 교차 검토 | F2 반환·run 상태 분기·마지막 lease 만료 복구 계약을 대조하고 정정 | 상세 결과 TEST_RESULTS. 런타임 시험 NOT_RUN |
 | 2026-10-09 | F1 구현 | Vue·FastAPI·PostgreSQL·별도 worker와 최소 공통 기반, 필수 질문/답변·멱등·버전·lease·외부 port 경계 | 실제 실행과 Seal 최종 판정은 F1 실행 번들에 기록. live/타 기능 전체 통합 NOT_RUN |
+
+| 2026-10-09 | F0→F1 통합 | 사용자 결정으로 F1 기반 별도 브랜치에서 Compose·세션 교대·단일 worker·타입 생성·상세 slot 이식 | 실제 시험 결과는 TEST_RESULTS의 F0/F1 절. 실제 모델/타 기능 통합 NOT_RUN |
 
 후속 작업은 이 표에 추가하며 이전 사실을 지우지 않는다. 현재 요약은 최신 상태로 갱신하되 이력과 충돌하지 않게 한다.
 

@@ -1,8 +1,19 @@
 # ShiftLink 개발 구현 문서
 
-v0.3 구현 계약 · 2026-10-09 · F1 구현 및 독립 검증 진행
+v0.3 구현 계약 · 2026-10-09 · F1 기준 공통 실행 기반 보강·기능 통합 대기
 
 ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 찾고, 사람의 승인·작업 수행·교대 인수·최종 해결 확인까지 같은 사건으로 연결하는 서비스다. F1 실행 앱과 개발 명세를 포함한다. F1의 독립 구현·검증 상태는 [Seal 실행 기록](docs/specs/f1-intake-investigation/PROGRESS.md), 설치·실행·외부 기능 경계는 [F1 실행 안내](docs/F1_IMPLEMENTATION.md)를 따른다. 전체 기능 통합·실제 모델·배포 상태는 별도로 기록한다.
+
+## 로컬 실행
+
+```sh
+python3 scripts/setup_env.py
+docker compose up --build -d
+```
+
+Web `http://127.0.0.1:5173`, API `http://127.0.0.1:8000`. 기존 `.env`는 보존한다. F1의 ORM·migration·화면을 공통 기준으로 사용하며 독립 F0 PR #8은 이 통합에 직접 병합하지 않는다. [F0 실행·연결 안내](docs/17_F0_FOUNDATION.md)를 따른다.
+
+기본 `WORKER_MODE=maintenance`는 복구만 수행한다. 제보는 저장되고 조사는 대기한다. 실제 모델 key/model을 설정하고 `WORKER_MODE=live`로 worker를 재생성해야 AI가 조사한다. 실제 모델 검증과 F2/F3/F4 연결은 별도다.
 
 ## 먼저 읽을 문서
 
@@ -46,6 +57,7 @@ ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 
 | [13 심사 근거](docs/13_JUDGING_EVIDENCE_MAP.md) | 주장·기능·시험·실제 제출 근거 대응 |
 | [14 도입과 가치](docs/14_PILOT_AND_VALUE.md) | 파일럿·현장 가설·비용과 시간 측정 |
 | [15 제출 절차](docs/15_SUBMISSION_RUNBOOK.md) | 버전 동결·접근 확인·실제 접수 확인 |
+| [17 F0 실행·연결](docs/17_F0_FOUNDATION.md) | F1 기반 Compose·세션·worker·migration·기능 연결 |
 | [아키텍처](docs/ARCHITECTURE.md) / [Mermaid](docs/ARCHITECTURE.mmd) | 구성요소·실행 경계·기능 간 연결 |
 | [환경 설정](docs/ENVIRONMENT.md) | 환경변수·비밀값·실행 전 점검 |
 | [진행](PROGRESS.md) / [시험 결과](TEST_RESULTS.md) | 현재 상태·실제 실행 결과 |

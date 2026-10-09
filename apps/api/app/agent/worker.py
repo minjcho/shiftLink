@@ -2,18 +2,22 @@
 from __future__ import annotations
 
 import importlib.metadata
+import argparse
 import hashlib
 import json
 import os
 from pathlib import Path
 import subprocess
 import time
+import signal
+import threading
 from uuid import uuid4
 
 from app.core.config import Settings
 from app.core.db import create_session_factory
 from app.core.errors import DomainError
 from app.core.ports import FeaturePorts
+from app.core.worker_lock import single_worker
 from .finalizer import DecisionRejected, finalize
 from .jobs import LostLease, claim_job, finish_failure, prepare_run, recover_exhausted
 from .runner import OpenAIResponsesTransport, RunLimits, run_agent
@@ -98,14 +102,33 @@ def run_once(session_factory, settings: Settings, ports: FeaturePorts, model_ada
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=("maintenance", "live"), default="live")
+    args = parser.parse_args()
     settings = Settings.from_env()
-    settings.validate(worker=True)
+    settings.validate(worker=args.mode == "live")
+    if args.mode == "live" and settings.agent_mode != "live":
+        raise ValueError("The runtime worker requires live mode; fake/replay need an explicit test adapter")
     factory = create_session_factory(settings.database_url)
     ports = FeaturePorts()
-    while True:
-        result = run_once(factory, settings, ports)
-        if result is None:
-            time.sleep(settings.worker_poll_interval_seconds)
+    stopped = threading.Event()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, lambda *_: stopped.set())
+    engine = factory.kw["bind"]
+    try:
+        with single_worker(engine) as check_lock:
+            print(f"ShiftLink worker ready: {args.mode}", flush=True)
+            while not stopped.is_set():
+                check_lock()
+                if args.mode == "maintenance":
+                    recover_exhausted(factory, max_attempts=settings.job_max_attempts)
+                    result = None
+                else:
+                    result = run_once(factory, settings, ports)
+                if result is None:
+                    stopped.wait(settings.worker_poll_interval_seconds)
+    finally:
+        engine.dispose()
 
 
 if __name__ == "__main__":

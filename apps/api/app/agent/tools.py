@@ -11,7 +11,7 @@ from sqlalchemy import select, text
 from app.core.models import (ActionDraft, Document, DocumentChunk, Equipment, EquipmentLog,
                              Incident, ResolutionCase)
 from .context import RunContext, evidence_data, issue_evidence
-from .jobs import fence
+from .jobs import fence, lock_incident_graph
 from .schemas import TOOL_ARGUMENTS
 
 
@@ -64,8 +64,8 @@ class ToolExecutor:
                 if remaining is not None:
                     tx.execute(text("SELECT set_config('statement_timeout', :timeout, true)"),
                                {"timeout": str(max(1, int(remaining * 1000)))})
+                incident = lock_incident_graph(tx, self.context.identity)
                 _, run = fence(tx, self.context.identity)
-                incident = tx.get(Incident, self.context.identity.incident_id)
                 if incident.site_id != self.context.identity.site_id:
                     return error_result("SCOPE_INVALID", "The incident scope changed")
                 equipment = tx.get(Equipment, incident.equipment_id)

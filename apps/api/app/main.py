@@ -7,11 +7,12 @@ from fastapi import FastAPI, Query, Request as HttpRequest
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.auth import COOKIE_NAME, check_origin, principal_data, principal_from_request, rotate_demo_session
 from app.core.config import Settings
+from app.core.contracts import IncidentStatus
 from app.core.db import create_session_factory
 from app.core.errors import DomainError, not_found
 from app.core.models import Equipment, Evidence, Job, Shift
@@ -53,7 +54,7 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
         settings.validate()
         yield
 
-    app = FastAPI(title="ShiftLink F1", lifespan=lifespan)
+    app = FastAPI(title="ShiftLink", lifespan=lifespan)
     app.state.settings = settings
     app.state.session_factory = session_factory or create_session_factory(database_url or settings.database_url)
     app.state.ports = ports or FeaturePorts()
@@ -86,6 +87,12 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
         response.set_cookie(COOKIE_NAME, raw, httponly=True, secure=settings.session_cookie_secure,
                             samesite="lax", max_age=43200, path="/")
         return response
+
+    @app.get("/healthz", include_in_schema=False)
+    def health():
+        with app.state.session_factory() as tx:
+            tx.execute(text("SELECT 1"))
+        return {"status": "ok"}
 
     @app.get("/api/v1/me")
     def me(request: HttpRequest):
@@ -121,7 +128,7 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
         return command(request, body, lambda tx, actor: service.add_message(tx, actor, str(incident_id), body, app.state.ports))
 
     @app.get("/api/v1/incidents")
-    def incidents(request: HttpRequest, status: Literal["OPEN", "INVESTIGATING", "ACTION_REQUIRED", "IN_PROGRESS", "PENDING_VERIFICATION", "RESOLVED"] | None = None,
+    def incidents(request: HttpRequest, status: IncidentStatus | None = None,
                   equipment_id: UUID | None = None, scope: Literal["all", "mine"] = "all",
                   cursor: str | None = Query(default=None, max_length=2048), limit: int = Query(default=20, ge=1, le=100)):
         principal = principal_from_request(request)

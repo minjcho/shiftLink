@@ -50,6 +50,8 @@ class SessionToken(Identity, Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Legacy tokens stay nullable and require re-login; never guess their shift.
+    shift_occurrence_id: Mapped[str | None] = mapped_column(ForeignKey("shifts.id", name="fk_session_shift"))
 
 
 class ShiftAssignment(Base):

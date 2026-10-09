@@ -88,7 +88,7 @@ def prepare_run(session_factory, identity: RunIdentity, ports, *, now=None):
     with session_factory.begin() as tx:
         incident = lock_incident_graph(tx, identity)
         fence(tx, identity, now=now)
-        if incident.status == "OPEN":
+        if incident.status == "OPEN" and not incident.review_required:
             incident.status = "INVESTIGATING"
             event = new_event(tx, incident, "INVESTIGATION_STARTED", related_ids={"run_id": identity.run_id})
             bump_incident(tx, incident, event, ports)

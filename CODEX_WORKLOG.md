@@ -45,3 +45,12 @@
 - main을 기반으로 한 공통 명세 b11945b를 새 원격 jgoneit의 시작점으로 사용한다. F1 source branch는 codex/f1-intake-investigation-pr이며 원본 로컬 jgoneit의 F1/F3와 작업 이력은 보존한다.
 - F1 구현과 최소 공통 기반, F1 실행 기록만 PR diff에 포함한다. F3 명세/대화 내보내기 도구는 공통 기준에 이미 있으므로 diff 밖이다. F3 구현/검사/실행 기록은 포함하지 않는다.
 - 분리 소스에서 서버88·화면30·빌드·실제 browser AC33을 다시 통과했다. 기존 Seal 완료 기록과 PR 소스의 직접 검증을 별도로 기재한다.
+
+## F0 → F1 기반 변경 — 2026-10-09
+
+- 사용자 요청: “그러면 F0를 F1으로 맞추는 쪽으로 진행을 해서 PR 을 업데이트 혹은 다시 PR 을 만들자”.
+- 기존 F0 `feature/f0-foundation`/PR #8을 보존하고 F1 `ec6c9f1`에서 별도 worktree와 `codex/f0-on-f1`을 생성했다. 공유 파일은 단일 통합 작업으로 수정했다.
+- F1 ORM·트랜잭션·agent·화면 유지, 전체 Compose·maintenance/live worker·세션 교대 migration·타입 생성·상세 slot을 이식했다. 기존 0001을 수정하지 않았다.
+- 실제 PostgreSQL, Compose, HTTP, Chromium(fake 모델)로 검증했다. 서버 104·화면 33·브라우저 1 PASS. 기존 F1 88 PASS baseline과 이전 #8 검증을 구분했다.
+- F1 도구 잠금 리뷰는 원본 실패를 재현하고 수정 후 통과했다. API base URL도 보강했다. 세션 전환은 기존 F1 재진입 차단을 검증했다. 남은 F1 리뷰 3건은 별도로 명시했다.
+- F2/F3/F4 adapter 및 제품 기능·실제 모델·배포·제출은 NOT_RUN. 새 PR은 F1 브랜치 대상이며 병합하지 않는다. 기존 PR 이력과 로컬 비밀값·대화 기록을 보존했다.

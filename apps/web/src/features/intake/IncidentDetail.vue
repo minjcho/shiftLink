@@ -88,12 +88,17 @@ async function retryJob(retry = false) {
       </div>
       <div class="column">
         <section class="panel analysis-panel" aria-labelledby="analysis-heading"><span class="section-number">AI 조사 참고</span><h2 id="analysis-heading">사실과 미확인 내용</h2><p class="muted">AI 조사 결과는 사람의 승인이나 사건 해결을 대신하지 않습니다.</p><template v-if="detail.analysis"><p v-if="stale" class="notice amber">이전 정보에 대한 분석 · 갱신 필요<br>분석 기준 {{ detail.analysis.base_version }} / 현재 업무 {{ detail.version }}</p><p v-if="detail.analysis.decision === 'BLOCKED'" class="notice error">조사 보류 · 정상 또는 해결로 판단되지 않았습니다.</p><p>{{ detail.analysis.reason }}</p><h3>기록·사람 진술·시스템 상태</h3><ul class="facts"><li v-for="(fact, index) in detail.analysis.facts" :key="index"><span class="category">{{ ({ HUMAN_STATEMENT: '사람 진술', RECORD: '기록', SYSTEM_STATE: '시스템 상태' } as Record<string,string>)[fact.kind] ?? fact.kind }}</span><p>{{ fact.text }}</p><small>근거 {{ fact.source_refs.join(', ') || '없음' }}</small></li></ul><h3>가설 · 확인된 사실 아님</h3><ul><li v-for="(hypothesis,index) in detail.analysis.hypotheses" :key="index">{{ hypothesis }}</li></ul><p v-if="!detail.analysis.hypotheses.length" class="muted">기록된 가설 없음</p><h3>미확인 정보</h3><ul><li v-for="(missing,index) in detail.analysis.missing_information" :key="index">{{ missing }}</li></ul><p v-if="!detail.analysis.missing_information.length" class="muted">분석에 기록된 미확인 항목 없음</p></template><p v-else>아직 저장된 분석이 없습니다. 원문 접수 상태는 유지됩니다.</p></section>
+        <slot name="actions" :detail="detail" :session="me" :refresh="refresh">
         <section v-if="detail.actions.length" class="panel"><h2>연결된 작업</h2><article v-for="action in detail.actions" :key="action.id"><h3>{{ action.status }} · {{ action.id }}</h3><p>{{ action.scope }}</p><p>작업 담당자 {{ person(action.assignee_id) }}</p><p v-if="action.status === 'COMPLETED'">작업 결과 제출 완료 · 사건 상태는 별도로 확인합니다.</p></article></section>
+        </slot>
+        <slot name="resolution" :detail="detail" :session="me" :refresh="refresh" />
         <section v-if="detail.handover" class="panel"><h2>교대 인수 요약</h2><p>{{ detail.handover.ack_status === 'ACKNOWLEDGED' ? '인수 완료' : '인수 확인 대기' }}</p><p v-if="detail.handover.is_stale">새 업무 내용 · 인계 재확인 필요</p><p class="muted">인수 상태와 AI 분석 최신성은 별개입니다.</p></section>
         <EvidencePanel :evidence="detail.evidence" />
       </div>
     </div>
+    <slot name="history" :detail="detail" :session="me" :refresh="refresh">
     <section class="panel"><h2>최근 업무 이력</h2><p v-if="!detail.recent_events.length">저장된 이력 없음</p><ul><li v-for="(event,index) in detail.recent_events" :key="event.id ?? index">{{ time(event.occurred_at) }} · {{ event.type }} · {{ event.id }} · {{ person(event.actor_id) }}</li></ul></section>
+    </slot>
     <details class="panel diagnostics"><summary>실행 진단 · 실제 모드와 실행 기록</summary><p v-if="jobError" class="notice error">Job 조회 실패 · {{ jobError }}</p><dl v-if="job"><dt>Job / 상태</dt><dd>{{ job.id }} / {{ job.status }}</dd><dt>모드</dt><dd>{{ job.mode ?? 'UNKNOWN' }}</dd><dt>run / attempt</dt><dd>{{ job.latest_run_id ?? '미수집' }} / {{ job.attempt ?? '미수집' }}</dd><dt>run 상태</dt><dd>{{ job.latest_run_status ?? '미수집' }}</dd><dt>시작 / 종료</dt><dd>{{ time(job.started_at) }} / {{ time(job.finished_at) }}</dd><dt>오류</dt><dd>{{ job.error_code ?? '없음' }}</dd></dl><p v-else>저장된 Job 없음</p><template v-if="job?.run_summary && me.role === 'supervisor' && me.user_id === detail.owner_id"><h3>현재 책임자에게 제공된 실행 요약</h3><pre>{{ JSON.stringify(job.run_summary, null, 2) }}</pre></template></details>
   </template>
 </template>

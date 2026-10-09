@@ -42,3 +42,15 @@ describe('AC31 command receipt identity and session boundary', () => {
     const fetcher = vi.fn().mockResolvedValue(failure(code, status)); vi.stubGlobal('fetch', fetcher); const command = new Command(); await expect(command.send(new ApiClient(), '/incidents', {})).rejects.toThrow(); expect(command.canRetry).toBe(true); expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('F0 API routing', () => {
+  it('uses a configured API prefix for both reads and writes', async () => {
+    const fetcher = vi.fn().mockImplementation(() => Promise.resolve(response({ id: 'saved' })));
+    vi.stubGlobal('fetch', fetcher);
+    const client = new ApiClient('/gateway/api/v1/');
+    await client.request('/me');
+    await client.request('/incidents', 'POST', { text: '원문' }, 'same-key');
+    expect(fetcher.mock.calls.map(c => c[0])).toEqual(['/gateway/api/v1/me', '/gateway/api/v1/incidents']);
+    expect(fetcher.mock.calls[1][1].headers['Idempotency-Key']).toBe('same-key');
+  });
+});
