@@ -285,3 +285,9 @@ Python 실행에는 Starlette의 httpx TestClient deprecation 경고 1개가 있
 - script는 자신이 시작한 API/Vue/Chromium과 고유 schema를 정리한다. F3 export는 제품 코드에 포함하지 않았다.
 - 잔존 경고: 기존 Starlette/httpx TestClient deprecation 1개, 브라우저 NO_COLOR/FORCE_COLOR 충돌 경고. 시험 실패 없음.
 - **NOT_RUN:** 모든 기능 화면과 실제 질문/답변을 포함한 전체 T8, 실제 모델 L1a/L1b/L2/L3, F3가 머지된 제품 기본 조립, 외부 배포·현장 사용·리허설·제출. worker guard 후속 이슈 #10은 이번 범위에서 변경하지 않았다.
+
+### F2 PR #5 최신 이력 통합 확인
+
+- `6b33370`에서 원격 minjcho `92cab3f`를 병합했다. 원래 F2 독립 패널/작업 이력을 보존했으며 문서 append 충돌은 양쪽 기록을 모두 유지했다.
+- `978b12c`와 비교해 서버·F4 화면·F4 시험/harness 소스의 변경 없음. 전체 시험을 불필요하게 반복하지 않고 추가된 F2 패널이 포함된 공통 vue-tsc/Vite 빌드를 실행해 PASS를 확인했다. 산출물 JS hash도 동일했다.
+- `git diff --check origin/minjcho...HEAD`: PASS. F2를 제외한 F4 기능 diff만 PR에 표시한다.
