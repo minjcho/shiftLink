@@ -193,3 +193,11 @@ F0의 `lock_incident_graph → fence` 구현, 세션 교대 migration 0002, auth
 - 중간 실패: 신규 다른 사건 근거 fixture를 만들 때 Incident INSERT 전에 Evidence FK UPDATE가 실행됐다. fixture의 부모 INSERT를 먼저 flush해 수정했고 전체 재검증 233 PASS. 생산 코드 결함으로 기록하지 않는다.
 - 잔존 경고: 기존 Starlette/httpx TestClient deprecation 1개.
 - **NOT_RUN:** F2 패널 브라우저 E2E, F3 실제 인수와 전체 T8, F4 RESOLVE/RETURN·실제 해결 사례 생성, L1a/L1b/L2/L3 실제 모델, 외부 배포·접수.
+
+### 최신 F1 반영 후 최종 재검증
+
+- 작업 중 F1 `7072e63`을 발견해 `c027c54`에서 통합했다. 기존 233 PASS 기록은 당시 c46d490 기반 실행으로 보존한다.
+- 새 메시지/검색 시험 포함 재검증 242 PASS 이후, 실제 F2 adapter의 generation 1 작업 재사용과 rollback 시 analysis·proposal event 보존을 추가 확인했다.
+- 최종 `F2_TEST_DATABASE_URL=<시험 DB> /private/tmp/shiftlink-f0-on-f1/.venv/bin/python -m pytest -q`: **243 PASS, 0 SKIP**, 50.87초. F1/F0 133 + F2 독립 85 + 신규 실제 ORM/HTTP 25. 시험 수집 경로에 기존 F2 독립 시험도 등록했다.
+- 최신 F1 Web **70 PASS**, vue-tsc·Vite build PASS. 생성 계약·공백 검사 PASS. 최종 기반 확인 SHA `7072e63`. 실제 F2 패널의 브라우저 시험은 이 수에 포함되지 않는다.
+- 이슈 #11은 이 브랜치의 전체 Action 집합 검사와 정상 생성·재사용·초과 생성 거부/rollback 시험으로 대응했다. 원격 이슈 상태는 변경하지 않았다.

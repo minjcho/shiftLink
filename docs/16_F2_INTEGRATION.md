@@ -1,6 +1,6 @@
 # F2 — F1 ORM 연결과 F4 준비 검사 인계
 
-2026-10-09 · 기준 F1 #6 `c46d490`, 기존 F2 #5 `3670cd2`. F1 ORM·세션·명령 receipt에 F2 서버를 연결했다. 사람의 RESOLVE/RETURN, 해결 사례 API, F2 화면 연결과 실제 모델 호출은 후속이다.
+2026-10-09 · 최초 기준 F1 #6 `c46d490`에서 시작해 작업 중 최신 `7072e63`을 통합했고, 기존 F2 #5 `3670cd2`. F1 ORM·세션·명령 receipt에 F2 서버를 연결했다. 사람의 RESOLVE/RETURN, 해결 사례 API, F2 화면 연결과 실제 모델 호출은 후속이다.
 
 ## 단일 실행 기반
 
@@ -58,3 +58,5 @@ python scripts/export_contracts.py --check
 `test_actions_integration.py`는 실제 F1 finalizer와 F2 ORM·HTTP 경로를 시험한다. `test_actions_http_process.py`는 별도 uvicorn 프로세스·실제 loopback HTTP·PostgreSQL로 승인/착수/결과를 수행하고 프로세스를 재시작해 세션·동일 receipt·결과 보존을 확인한다. 모델 결과는 명시적인 합성 fixture이며 live AI 증거가 아니다.
 
 F2 전체 상태는 IN_PROGRESS다. 기존 #5의 작업 패널은 F1 상세 슬롯에 후속 연결한다. F3 실제 ACK 및 F4 RESOLVE/RETURN, 같은 사건의 전체 T8, 실제 모델 L1b는 별도 검증한다. 정확한 실행 결과는 TEST_RESULTS의 F2/F1 통합 절을 따른다.
+
+최종 검증 소스는 F1 7072e63 통합본이며 서버 243 PASS, 기존 Web 70 PASS·빌드·생성 계약 PASS다. F2 화면·사람 검증·live는 위 후속 범위를 유지한다.

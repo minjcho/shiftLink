@@ -8,7 +8,7 @@
 |---|---|---|---|---|
 | DOC | 구현 문서·환경 예시·ignore 규칙 | Codex 작성, 팀 검토 대기 | DONE | 정적 검사 완료, 실제 담당 착수 확인 |
 | F0 | 공통 실행 기반·계약 | 재곤 통합, 민재 검토 | IN_PROGRESS | F1 기준 Compose·세션·worker·타입·화면 slot 보강, PR #9 반영 |
-| F1 | 접수·AI 조사·질문과 답변 | 재곤 | [Seal 판정](docs/specs/f1-intake-investigation/PROGRESS.md) | 후속 리뷰 보완 후 서버 133개·화면 70개·브라우저 기본3/변경 prefix3·빌드 PASS; F2 추가 Action은 이슈 #11로 추적; live/타 기능 전체 통합은 별도 |
+| F1 | 접수·AI 조사·질문과 답변 | 재곤 | [Seal 판정](docs/specs/f1-intake-investigation/PROGRESS.md) | 후속 리뷰 보완 후 서버 133개·화면 70개·브라우저 기본3/변경 prefix3·빌드 PASS; F2 추가 Action은 이슈 #11로 추적하며 이 브랜치에서 수정·회귀 검증; live/타 기능 전체 통합은 별도 |
 | F2 | 작업 제안 확정·승인·착수·결과 | 민재 | IN_PROGRESS | F1 기준 서버 연결·실제 HTTP/DB 검증 PASS. 작업 패널·F3/F4 전체 통합·live 후속 |
 | F3 | 교대 인계·인수 | 재곤 | IN_PROGRESS | 별도 PR #7, 통합 대기 |
 | F4 | 최종 검증·해결 이력 | 민재 | IN_PROGRESS | 준비 검사만 PR #5, 사람 검증·case 후속 |
@@ -44,6 +44,6 @@ F1 PR #6에 F0 보강 PR #9가 병합됐다. #8의 독립 schema·worker·화면
 
 ## F2 서버 연결 — 2026-10-09
 
-`codex/f2-on-f1`에서 F1 #6 `c46d490`을 기준으로 #5의 서버 업무 로직·시험을 통합했다. Action-only 후보 staging, ORM adapter, 공유 receipt·세션·Origin, 공통 준비 검사와 API/worker 조립을 연결했다. F1 원격 HEAD는 구현 단계별 조회에서 c46d490으로 유지됐다. F2 화면 전체 완료를 선행 조건으로 두지 않고 승인·착수·결과·검증 대기 서버 경로를 먼저 검증했다.
+`codex/f2-on-f1`에서 F1 #6 `c46d490`을 기준으로 #5의 서버 업무 로직·시험을 통합했다. Action-only 후보 staging, ORM adapter, 공유 receipt·세션·Origin, 공통 준비 검사와 API/worker 조립을 연결했다. 작업 중 새 F1 HEAD 7072e63을 발견해 통합하고 재검증했다. F2 화면 전체 완료를 선행 조건으로 두지 않고 승인·착수·결과·검증 대기 서버 경로를 먼저 검증했다.
 
-서버 233 PASS(실제 DB와 독립 계약 시험 구분은 TEST_RESULTS), 기존 Web 65 PASS·타입/빌드·생성 계약 검사 PASS. 별도 uvicorn 프로세스의 실제 HTTP와 재시작 후 세션·결과·receipt 보존을 확인했다. F2 전체 DONE은 아니며 F4 사람 검증·F3 인수·live·브라우저 작업 패널은 후속이다.
+최신 통합 서버 243 PASS(실제 DB와 독립 계약 시험 구분은 TEST_RESULTS), 기존 Web 70 PASS·타입/빌드·생성 계약 검사 PASS. 별도 uvicorn 프로세스의 실제 HTTP와 재시작 후 세션·결과·receipt 보존을 확인했다. F2 전체 DONE은 아니며 F4 사람 검증·F3 인수·live·브라우저 작업 패널은 후속이다.
