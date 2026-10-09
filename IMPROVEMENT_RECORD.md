@@ -25,3 +25,12 @@
 - 수정: 상위 경로에서 compose.yaml이 있는 저장소를 찾을 때만 .env를 읽고, 컨테이너에서는 주입된 환경을 사용한다.
 - 재검증: container-layout 회귀 시험 추가, 서버 35 PASS. Compose migrate/seed exit 0과 db/api healthy, 실제 HTTP 성공 확인.
 - 제한: 앱 기능 통합이나 실제 모델 호출 성공으로 확장하지 않는다.
+
+
+## F0-JOB-001 최초 조사 전이 이전 input_version 고정
+
+- 발견: PR #8 P1 리뷰. OPEN 사건의 version을 claim 시 고정한 뒤 F1이 INVESTIGATING으로 바꾸면 정상 결과도 stale로 판정한다.
+- 누락 원인: 기존 Job fixture가 모두 INVESTIGATING이었다. 최초 접수 상태에서 시작하는 시험이 없었다.
+- 재현: OPEN에서 시작해 질문을 저장하는 회귀 시험을 먼저 추가했고 수정 전 FAIL 확인.
+- 수정: lease 예약과 최초 조사 준비 커밋을 분리한 뒤 현재 버전으로 run을 생성한다. 상태 변경·이벤트·선택적 F3 hook은 같은 transaction에 두고 마지막 lease 검사 실패 시 rollback한다.
+- 검증: 실제 PostgreSQL 48 PASS. 기존 상태/버전 보존·재claim·만료/재할당·중간 실패 복구·잠금 순서 시험 포함. 실제 F1 모델 호출은 미실행이다.

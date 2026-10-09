@@ -32,3 +32,12 @@
 - 경계: F1 live handler/접수·F2 DB adapter/업무 패널 연결·F3 인계·F4 verification은 구현하지 않았다. Worker는 F1 연결 전 만료 복구만 실행한다.
 - 기존 .env를 보존하고 실행용 비밀값은 Git 제외 로컬 파일에 생성했다. 대화 원문은 공개 PR에 포함하지 않는다.
 - 사람 코드 검토·실제 브라우저 확인: NOT_REVIEWED / NOT_RUN. 기능별 세부 커밋과 Draft PR로 인계한다.
+
+
+## F0-002 PR 리뷰 P1 수정
+
+- 실제 지시: 사용자가 F0 리뷰 확인 후 `수정 ㄱㄱ` 지시.
+- 변경: Job lease 예약→최초 조사 상태 커밋→기준 version/run 생성으로 분리. 기존 Claim 반환 형식 유지. 최초 전이 이벤트·F3 hook의 transaction 및 lease 검사를 제공한다.
+- 검증: 수정 전 새 회귀 1 FAIL을 확인하고, 수정 후 PostgreSQL 서버 전체 48 PASS. 기존 Web 코드는 변경하지 않았다.
+- 인계: claim_job이 최초 상태 전환을 보장하므로 F1은 반환 Claim을 사용하고 별도 중복 전이를 하지 않는다. 준비 중 run 미생성 상태는 lease 재확보/최종 만료 복구로 처리한다.
+- 범위: 코드·시험 수정과 검증 문서 갱신을 분리 커밋해 같은 F0 PR에 push한다. 리뷰 답글이나 thread resolve는 수행하지 않는다.

@@ -49,3 +49,14 @@ NOT_RUN은 실행하지 않음, PASS는 명시된 조건을 실제 만족, FAIL�
 | OpenAI live·업무 전주기·배포 | 범위 외 | **NOT_RUN** |
 
 httpx TestClient deprecation 경고 1개가 남아 있다. 시험 원본·Compose 로그·HTTP 결과는 Git 제외 경로 docs/history/f0-*에 보존하고 비밀값이나 세션 쿠키는 결과에 포함하지 않는다. 실제 실행 DB는 Compose volume에 유지하며 초기 자료를 업무 성공으로 계산하지 않는다. 전체 T1~T12 또는 F5 완료를 주장하지 않는다.
+
+
+## F0 리뷰 P1 수정 — 최초 조사 기준 버전
+
+- 리뷰: PR #8 discussion_r4226641125, 최초 OPEN 사건에서 INVESTIGATING 전이 이전 version을 run에 고정하는 결함.
+- 수정 전: OPEN에서 시작해 질문을 저장하는 새 회귀 시험 **1 FAIL**. claim 후에도 사건이 OPEN인 것을 확인했다. 기존 fixture는 INVESTIGATING에서 시작해 누락됐다.
+- 수정: Job 예약 → 최초 조사 상태·버전·이벤트 커밋 → 현재 lease 아래 버전 확정/AgentRun 생성으로 분리. Incident→Job 잠금 순서를 유지하고 준비 변경과 F3 hook을 같은 transaction에서 처리한다.
+- 수정 후: 실제 PostgreSQL 17 전용 DB에서 `python -m pytest apps/api/tests/core -q` → **48 PASS, 0 SKIP**. 기존 35 + 새 회귀 13.
+- 추가 검증: 최초 OPEN에서 질문 저장·WAITING_INPUT 성공, 진행 상태 보존(5종), 재claim 시 최초 전이 한 번, 준비 전 만료/재할당 rollback, 준비 커밋 후 만료와 재확보, 준비 이후 최신 version 반영, hook 실패 rollback, Incident 대기 중 Job 선점 없음.
+- 로그: Git 제외 `docs/history/f0-review-before.txt`, `docs/history/f0-review-after.txt`. 기존 실패 기록은 보존한다.
+- Web 변경 없음으로 기존 Web 7 PASS·빌드 기록을 유지하며 이번에 다시 실행하지 않았다. F1 live와 실제 전주기 통합은 여전히 NOT_RUN. httpx TestClient deprecation 경고 1개 잔존.

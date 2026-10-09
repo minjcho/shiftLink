@@ -57,7 +57,15 @@ receipt는 `(site, actor, key)`와 정규화 method/route/body SHA-256에 묶인
 
 현재 별도 worker는 singleton PostgreSQL 세션 잠금 아래 **마지막 attempt 만료 복구만 실행**한다. F1 handler가 없어 QUEUED를 claim하거나 모델을 호출하거나 성공 처리하지 않는다. API는 모델 키가 없어도 부팅한다.
 
-F1은 live handler를 등록할 때 `settings.validate_live_worker()`를 먼저 호출한다. `claim_job`은 짧은 Job 잠금 아래 attempt와 token 및 run을 생성한다. 최초 OPEN→INVESTIGATING 전이는 F1이 별도 transaction에서 완료한 후 input_version을 확보해야 한다.
+F1은 live handler를 등록할 때 `settings.validate_live_worker()`를 먼저 호출한다. `claim_job`은 다음 세 개의 짧은 transaction을 완료한 뒤 준비된 Claim을 반환한다.
+
+1. Job만 잠그고 attempt/token을 예약한다. 이때 아직 AgentRun이나 input_version을 만들지 않는다.
+2. Incident를 먼저 잠그고 최초 OPEN이며 review_required=false일 때만 INVESTIGATING·version +1·INVESTIGATION_STARTED 이벤트를 저장한다. Job을 마지막에 잠그고 현재 lease를 확인한 뒤 커밋한다. 기존 진행/검증/해결·검토 차단 상태는 바꾸지 않는다.
+3. 다시 Incident → Job 순으로 잠그고 현재 lease를 재검사한 뒤, **커밋된 현재 version**으로 AgentRun을 생성한다. 반환 Claim과 AgentRun.input_version은 같다.
+
+F1은 반환된 Claim의 input_version을 사용하며 최초 상태 전환을 별도로 중복 수행하지 않는다. F3 revision 변경이 필요한 경우 `on_investigation_started(tx, before, after)` hook을 넘겨 2단계의 같은 transaction에 저장한다. hook은 commit·외부 IO를 하지 않으며, 실패 또는 마지막 lease 검사 실패 시 상태·버전·이벤트와 함께 rollback한다.
+
+준비 중 프로세스가 종료되거나 lease를 잃으면 예약된 Job에 아직 AgentRun이 없을 수 있다. 모델 호출 전의 예약 상태이며 잘못된 input_version의 run을 남기지 않는다. lease 만료 후 새 attempt로 재확보하거나 마지막 attempt 만료 복구로 Job을 FAILED 처리한다. 이미 커밋된 최초 전이는 재시도에서 반복하지 않는다.
 
 외부 호출은 DB 잠금 밖에서 수행한다. `finish_job(..., apply=callback)`은 Incident를 먼저 잠그고 현재 버전을 검사한다. callback은 관련 업무 행을 잠그고 저장하되 commit/외부 호출을 하지 않는다. 마지막에 Job을 잠그고 현재 attempt/token/미만료 조건을 다시 확인한다. 그동안 lease가 만료됐으면 callback의 변경도 함께 rollback한다. 입력 버전이 바뀌면 callback 없이 SUPERSEDED로 종료한다. 필요 시 새 Job을 중복 없이 등록하는 정책은 F1이 담당한다.
 
@@ -85,6 +93,6 @@ npm run build
 
 PostgreSQL URL이 없으면 DB 시험은 SKIP하며 SQLite로 대체하지 않는다. 시험마다 고유한 f0_test_* schema를 만들고 삭제한다. 운영 DB를 시험 대상으로 지정하지 않는다. Compose의 `api`에서 `alembic check`를 실행하면 schema drift를 확인할 수 있다.
 
-실행 결과: Python 35 PASS, Web 7 PASS, 타입/production build PASS, 실제 Compose·네 세션·기본 조회·API 프로세스 재시작 후 세션 보존 PASS. 실제 브라우저 렌더·클릭과 F1/F2/F3/F4 통합은 NOT_RUN이다. 상세는 TEST_RESULTS의 F0 절을 따른다.
+최신 실행 결과: 최초 조사 버전 수정 후 Python 48 PASS. Web 7 PASS, 타입/production build PASS, 실제 Compose·네 세션·기본 조회·API 프로세스 재시작 후 세션 보존 PASS. 실제 브라우저 렌더·클릭과 F1/F2/F3/F4 통합은 NOT_RUN이다. 상세는 TEST_RESULTS의 F0 절을 따른다.
 
 구현 시 [SQLAlchemy transaction 문서](https://docs.sqlalchemy.org/en/20/core/connections.html)와 [Alembic migration 생성 문서](https://alembic.sqlalchemy.org/en/latest/autogenerate.html)를 확인했다. 자동 생성 migration은 실제 PostgreSQL에서 upgrade/downgrade/upgrade와 metadata 일치를 검증했다.

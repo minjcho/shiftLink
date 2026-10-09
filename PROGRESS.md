@@ -29,6 +29,7 @@ F0 PR을 검토·병합한 뒤 minjcho에 main을 반영하고 F2 DB adapter·�
 | 2026-10-09 | 문서 작성 | ZIP v0.2 구성을 참고해 v0.3 기능별 구현 문서와 .env.example 작성 | 문서·환경 정적 검사 완료. 앱 코드 미작성 |
 | 2026-10-09 | 계약 교차 검토 | F2 반환·run 상태 분기·마지막 lease 만료 복구 계약을 대조하고 정정 | 상세 결과 TEST_RESULTS. 런타임 시험 NOT_RUN |
 | 2026-10-09 | F0 구현 | main에서 feature/f0-foundation 생성, 실제 DB·세션·명령/worker 기반·세 화면 셸·Compose 구현 | Python 35 PASS, Web 7 PASS, 빌드·migration 왕복·Compose·실제 HTTP·API 재시작 후 세션 유지 PASS. 기능 통합/실제 모델/브라우저 E2E NOT_RUN |
+| 2026-10-09 | F0 P1 리뷰 수정 | 최초 OPEN 조사 상태 커밋 후 기준 버전 확정, lease·잠금·재시도 회귀 보강 | 수정 전 회귀 FAIL, 수정 후 PostgreSQL 서버 48 PASS. F1 live 통합 전 |
 
 후속 작업은 이 표에 추가하며 이전 사실을 지우지 않는다. 현재 요약은 최신 상태로 갱신하되 이력과 충돌하지 않게 한다.
 
