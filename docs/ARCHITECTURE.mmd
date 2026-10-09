@@ -1,0 +1,56 @@
+flowchart TB
+    USERS["작업자 · 정비 담당자 · 출발/수신 책임자"]
+    subgraph WEB["Vue 3 · TypeScript / 세 화면"]
+        REPORT["F1 접수·미해결 목록"]
+        DETAIL["공유 Incident 상세<br/>F1 질문·근거 / F2 작업 / F4 검증"]
+        HANDOVER["F3 교대 인수"]
+    end
+    subgraph API["FastAPI / 기능별 업무 서비스"]
+        GUARD["F0 세션·Origin·멱등성·권한·버전"]
+        INTAKE["F1 접수·메시지·질문"]
+        ACTIONS["F2 제안 확정·승인·착수·결과"]
+        SHIFTS["F3 인계 집합·revision·ACK"]
+        RESOLUTION["F4 준비 조건·사람 검증·해결 사례"]
+    end
+    subgraph EXECUTION["별도 단일 Worker / F1 Agent"]
+        WORKER["DB Job claim<br/>attempt·lease token"]
+        RUNNER["Agent Runner<br/>조회 → 도구 결과 → 구조화 판단"]
+        TOOLS["문맥·로그·SOP·사례 조회<br/>run 내부 Action 후보"]
+        FINALIZER["짧은 최종 트랜잭션<br/>input_version + 현재 lease 확인"]
+    end
+    DB[("PostgreSQL<br/>업무·원문·근거·이벤트·receipt<br/>인계 snapshot·Job·AgentRun")]
+    OPENAI["OpenAI Responses API<br/>실제 모델·도구 호출 루프"]
+    SEED["합성 설비·계정·교대<br/>승인 SOP·로그·과거 사례"]
+    CODEX["Codex 개발 작업<br/>기능별 코드·문서·시험"]
+    REPO["저장소 / 계획 경로<br/>apps/web · apps/api · docs"]
+    USERS --> WEB
+    WEB <-->|"HTTP·2초 폴링"| GUARD
+    GUARD --> INTAKE
+    GUARD --> ACTIONS
+    GUARD --> SHIFTS
+    GUARD --> RESOLUTION
+    INTAKE -->|"원문·이벤트·Job 원자 저장"| DB
+    ACTIONS -->|"승인·작업 결과"| DB
+    SHIFTS -->|"범위·snapshot·owner 이전"| DB
+    RESOLUTION -->|"검증·case 원자 저장"| DB
+    ACTIONS -->|"완료 준비 검사"| RESOLUTION
+    WORKER <-->|"짧은 claim·종료 갱신"| DB
+    WORKER --> RUNNER
+    RUNNER <-->|"모델 output·tool 결과"| OPENAI
+    RUNNER <--> TOOLS
+    TOOLS <-->|"업무 조회·키워드 검색·근거 저장"| DB
+    RUNNER --> FINALIZER
+    FINALIZER -->|"질문 확정"| INTAKE
+    FINALIZER -->|"F2 내부 생성 서비스"| ACTIONS
+    FINALIZER -->|"검증 준비 제안"| RESOLUTION
+    FINALIZER -->|"동일 transaction"| DB
+    SEED -.->|"초기 적재"| DB
+    CODEX -.->|"개발·검토"| REPO
+    classDef feature fill:#EFF6FF,stroke:#2563EB,color:#172554;
+    classDef agent fill:#ECFDF5,stroke:#0F766E,color:#134E4A;
+    classDef store fill:#F8FAFC,stroke:#64748B,color:#0F172A;
+    classDef external fill:#F5F3FF,stroke:#7C3AED,color:#3B0764;
+    class REPORT,DETAIL,HANDOVER,GUARD,INTAKE,ACTIONS,SHIFTS,RESOLUTION feature;
+    class WORKER,RUNNER,TOOLS,FINALIZER agent;
+    class DB,SEED,CODEX,REPO,USERS store;
+    class OPENAI external;

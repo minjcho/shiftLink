@@ -1,2 +1,7 @@
 # Local Codex conversation history
 /docs/history/
+
+# Local environment files may contain secrets; commit examples only.
+.env
+.env.*
+!.env.example
