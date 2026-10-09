@@ -1,27 +1,18 @@
-"""Optional actual F3 integration; skip until its independently owned package is present.
-
-For an unmerged F3 PR, SHIFTLINK_F3_FEATURE_ROOT may point to an exported
-features directory at a recorded SHA. No fake ACK or replacement hook is used.
-"""
+"""F3/F2/F4 integration through the merged production routes and feature ports."""
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
-import os
 from threading import Event
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-import app.features
-if os.environ.get('SHIFTLINK_F3_FEATURE_ROOT'):
-    app.features.__path__.append(os.environ['SHIFTLINK_F3_FEATURE_ROOT'])
-handovers = pytest.importorskip('app.features.handovers.service', reason='F3 package not merged; run against recorded F3 export')
-from app.features.handovers.router import register
+from app.features.handovers import service as handovers
 from app.features.handovers.schemas import AcknowledgeBody
 from app.core import models as db
 from app.core.auth import Principal
 from app.core.errors import DomainError
 from app.core.ports import production_ports
-from app.main import create_app, command, with_meta
+from app.main import create_app
 from app.features.resolution.service import verify
 from app.features.resolution.schemas import VerificationBody
 from test_actions_integration import proposed, approve_start, complete, post
@@ -30,15 +21,12 @@ from test_resolution import body, verification
 
 @pytest.fixture
 def ports():
-    ports = production_ports()
-    ports.handover_refresher = handovers.refresh_handover_items
-    return ports
+    return production_ports()
 
 
 @pytest.fixture
 def client(session_factory, settings, ports):
     app = create_app(session_factory=session_factory, settings=settings, ports=ports)
-    register(app, command=command, with_meta=with_meta)
     with TestClient(app) as client:
         yield client
 

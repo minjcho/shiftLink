@@ -4,7 +4,7 @@
 
 F1의 접수·추가 원문·정정·지정 질문 답변·목록·상세·근거·Job 조회와 재시도, 자료 검색, Responses 실행, 질문 확정, 버전/lease 차단을 구현했다. 화면은 Vue 3, API는 FastAPI, DB는 PostgreSQL, worker는 별도 Python 프로세스다.
 
-세션·DB·명령 receipt·공유 모델·마이그레이션은 F1을 실행하기 위한 최소 공통 기반이다. F2 승인/착수/결과, F3 인계 생성/ACK, F4 사람 검증/해결 endpoint는 제공하지 않는다. 모델이 제안한 draft는 정식 Action이 아니다.
+세션·DB·명령 receipt·공유 모델·마이그레이션은 F1을 실행하기 위한 최소 공통 기반이다. 현재 통합본은 F2 승인/착수/결과를 제공하고 F4 사람 검증/해결 endpoint는 후속이다. F3 인계 생성/ACK는 별도 기능으로 연결했으며 [F3 실행 안내](F3_IMPLEMENTATION.md)를 따른다. 모델이 제안한 draft는 정식 Action이 아니다.
 
 ## 기능 연결
 
@@ -12,7 +12,7 @@ F1의 접수·추가 원문·정정·지정 질문 답변·목록·상세·근�
 | --- | --- | --- |
 | F2 Action 확정 | 미연결이면 실패, 질문·Action·analysis 부분 확정 없음 | `FeaturePorts.action_finalizer`, 기존 caller-owned transaction 인자와 반환 계약 |
 | F4 검증 준비 | 미연결이면 실패, 준비 성공을 합성하지 않음 | `FeaturePorts.readiness_evaluator`, `ready`와 미충족 조건 |
-| F3 기존 항목 갱신 | 항목이 없으면 무효과, 기존 항목이 있으면 미연결 오류와 전체 rollback | `FeaturePorts.handover_refresher`, 같은 transaction의 Incident와 Event |
+| F3 기존 항목 갱신 | 기본 API/worker에는 F3 서비스 연결. 명시적으로 빈 port를 주입한 시험에서는 기존 항목 갱신 시 오류와 전체 rollback | `FeaturePorts.handover_refresher`, 같은 transaction의 Incident와 Event |
 
 포트는 `create_app(..., ports=...)`와 `run_once(..., ports, ...)` 양쪽에 같은 서비스 구현을 주입한다. 공유 schema·migration head는 이 저장소에서 한 번에 통합한다. 최초 migration은 현재 ORM을 다시 읽지 않는 고정 DDL이다.
 
@@ -99,4 +99,4 @@ F1 전체 통합 완료에는 SPEC의 L1a/L1b/L2/L3 실제 모델 run과 F2/F3/F
 
 ### F1 전용 PR 소스
 
-이 PR은 F1 단독 실행 구성을 사용한다. F3 기본 서비스·router·화면은 포함하지 않고 외부 기능은 위 FeaturePorts 계약으로 연결한다. 기존 Seal 완료 기록은 원본 b4e63f4에 대한 결과이며, F1 전용 소스에서 다시 실행한 서버88·화면30·빌드·실제 Chromium 결과는 TEST_RESULTS.md의 분리 검증 절에 기록했다.
+F1 PR #6은 F1 단독 실행 구성을 사용한다. F3 기본 서비스·router·화면은 포함하지 않고 외부 기능은 위 FeaturePorts 계약으로 연결한다. 기존 Seal 완료 기록은 원본 b4e63f4에 대한 결과이며, F1 전용 소스에서 다시 실행한 서버88·화면30·빌드·실제 Chromium 결과는 TEST_RESULTS.md의 분리 검증 절에 기록했다.

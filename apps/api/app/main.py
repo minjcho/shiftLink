@@ -203,6 +203,8 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
         return action_command(action_id, request, body, idempotency_key)
 
     register_resolution_routes(app, command, with_meta)
+    from app.features.handovers.router import register as register_handovers
+    register_handovers(app, command=command, with_meta=with_meta)
     return app
 
 

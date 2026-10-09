@@ -1,8 +1,8 @@
 # ShiftLink 개발 구현 문서
 
-v0.3 구현 계약 · 2026-10-09 · F1 기준 공통 실행 기반 보강·기능 통합 대기
+v0.3 구현 계약 · 2026-10-09 · F1/F2/F3 서버 통합·전체 화면과 사람 검증 후속
 
-ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 찾고, 사람의 승인·작업 수행·교대 인수·최종 해결 확인까지 같은 사건으로 연결하는 서비스다. F1 실행 앱과 개발 명세를 포함한다. F1의 독립 구현·검증 상태는 [Seal 실행 기록](docs/specs/f1-intake-investigation/PROGRESS.md), 설치·실행·외부 기능 경계는 [F1 실행 안내](docs/F1_IMPLEMENTATION.md)를 따른다. 전체 기능 통합·실제 모델·배포 상태는 별도로 기록한다.
+ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 찾고, 사람의 승인·작업 수행·교대 인수·최종 해결 확인까지 같은 사건으로 연결하는 서비스다. F1 실행 앱과 개발 명세를 포함한다. F1의 독립 구현·검증 상태는 [Seal 실행 기록](docs/specs/f1-intake-investigation/PROGRESS.md), 설치·실행·외부 기능 경계는 [F1 실행 안내](docs/F1_IMPLEMENTATION.md)를 따른다. F3 구현과 실행 방법은 [F3 실행 안내](docs/F3_IMPLEMENTATION.md), 18개 완료 조건의 판정은 [F3 Seal 기록](docs/specs/f3-handover/PROGRESS.md)을 따른다. 전체 기능 통합·실제 모델·배포 상태는 별도로 기록한다.
 
 ## 로컬 실행
 
@@ -13,7 +13,7 @@ docker compose up --build -d
 
 Web `http://127.0.0.1:5173`, API `http://127.0.0.1:8000`. 기존 `.env`는 보존한다. F1의 ORM·migration·화면을 공통 기준으로 사용하며 독립 F0 PR #8은 이 통합에 직접 병합하지 않는다. [F0 실행·연결 안내](docs/17_F0_FOUNDATION.md)를 따른다.
 
-기본 `WORKER_MODE=maintenance`는 복구만 수행한다. 제보는 저장되고 조사는 대기한다. 실제 모델 key/model을 설정하고 `WORKER_MODE=live`로 worker를 재생성해야 AI가 조사한다. F2 서버는 승인·착수·결과와 공통 검증 준비까지 연결했다. [F2 연결 안내](docs/16_F2_INTEGRATION.md)를 참고한다. F4 사람의 해결 확인·반려·해결 이력 화면/API도 연결했다. [F4 실행·검증 안내](docs/F4_IMPLEMENTATION.md)를 따른다. 기존 작업 패널의 공통 화면 연결·F3 제품 통합과 실제 모델 검증은 후속이다.
+기본 `WORKER_MODE=maintenance`는 복구만 수행한다. 제보는 저장되고 조사는 대기한다. 실제 모델 key/model을 설정하고 `WORKER_MODE=live`로 worker를 재생성해야 AI가 조사한다. F2 서버는 승인·착수·결과와 공통 검증 준비까지 연결했다. [F2 연결 안내](docs/16_F2_INTEGRATION.md)를 참고한다. F3 인수는 같은 기본 구성에 연결했다. [이번 통합·리뷰 명세](docs/specs/f3-main-integration-review/SPEC.md)를 따른다. F2 작업 패널은 [#16](https://github.com/minjcho/shiftLink/issues/16), F3의 비치명적 후속은 [#17](https://github.com/minjcho/shiftLink/issues/17)·[#18](https://github.com/minjcho/shiftLink/issues/18)·[#19](https://github.com/minjcho/shiftLink/issues/19)로 추적한다. F4 사람의 해결 확인·반려·해결 이력 화면/API도 연결했다. [F4 실행·검증 안내](docs/F4_IMPLEMENTATION.md)를 따른다. 실제 모델·전체 화면 전주기는 후속이다.
 
 ## 먼저 읽을 문서
 

@@ -2,6 +2,8 @@
 
 ## 1. 현재 결과
 
+아래 초기 문서 검사와 이후 앱 시험을 분리한다. 초기 문서 작업은 앱을 실행하지 않았으며, 최신 F1/F3 실행과 한계는 하단 기록을 따른다.
+
 아래 표는 문서 작성 시점의 결과다. 이후 F2 독립 기능 시험은 4~6절에 기록한다. 최신 PR 검증은 6절이다. 공통 실행 앱·실제 DB adapter·worker·OpenAI 호출은 여전히 미검증이다.
 
 | ID | 검사·시험 | 결과 | 근거·제한 |
@@ -83,6 +85,54 @@ Chromium 설치 전 첫 시도는 실행 파일 부재로 실패했고 설치 �
 직접 시험 당시 HEAD는 9c098cc이고 후속 F1 문서/기록 가져오기 변경만 dirty였다. 실행 소스와 시험 정의는 0fbdbac과 동일하다. 최종 PR commit은 문서·기록만 더하며 같은 실행 소스를 유지한다. PostgreSQL은 기존 시험 전용 컨테이너와 새 임의 schema를 사용했고 harness는 시험 프로세스/schema를 정리했다. 의존성은 동일한 기존 로컬 설치를 재사용했다.
 
 보존한 Seal seq 84는 F3 포함 tree b4e63f4에서 생성된 과거 완료 기록이다. 이것을 PR 분리 SHA의 새로운 ha 완료로 보고하지 않는다. 이 절의 결과는 별도로 직접 실행한 검증이다. 실제 모델·F2/F3/F4 제품 통합·배포·제출은 NOT_RUN이며 모델 fake와 계약 대체를 명시한다.
+
+## F3 구현 직접 검증 — 2026-10-09T12:53:10+09:00
+
+기준 기반 b0bcb54c41ee, jgoneit의 F3 변경은 검사 시 미커밋이었다. 입력은 합성 fixture이며 DB는 독립 schema의 PostgreSQL 17.11, 세션·HTTP·F3 서비스는 실제 구현이다. 모델 호출은 없다. 검사 작성자는 executor, assurance local이다.
+
+| 검사 | 결과 | 범위와 한계 |
+| --- | --- | --- |
+| `.venv/bin/python -m pytest -q tests/handovers` (PYTHONPATH=apps/api) | 52 PASS | 생성·조회·ACK·revision·권한·receipt·SQL 잠금 경합·rollback·실제 F1 current-lease SUPERSEDED |
+| `python3 scripts/check_f3.py AC-18` | 3 PASS | 모델 부재·analysis-only/버전·F1 연결, 아직 ha 외 직접 실행 |
+| `npm --prefix apps/web run build` | PASS | vue-tsc·Vite build; UI 런타임 증거 아님 |
+| `npx playwright test tests/handovers.spec.ts --list` (apps/web) | PASS | AC-1/16/17 세 시험 등록만 확인 |
+| `scripts/f3_browser.py AC-1/16/17` | NOT_RUN | 동일 환경 F1 Chromium 권한 실패가 기록돼 native 실행 재시도 보류; F3 사용자 흐름 미확인 |
+| 전체 live T8·F2/F4 제품 연결·배포 | NOT_RUN | F3 합성 입력 경계와 별도 |
+
+Seal baseline/current의 최종 기록 번호는 [F3 PROGRESS](docs/specs/f3-handover/PROGRESS.md)를 따른다. 브라우저 미실행을 PASS로 대신하지 않는다.
+
+### 2026-10-09T12:55:37+09:00 F3 교차 회귀 보완
+
+S-02의 해결 상태·재ACK 필요를 명시했고 두 경계를 회귀 시험에 추가했다. F1 시험 전체 첫 실행에서 F3 기본 hook 등록이 명시적으로 주입된 빈 FeaturePorts를 덮어써 기존 missing-adapter 시험 1개가 실패(87 PASS, 1 FAIL)했다. `create_app` 기본 구성과 명시적 주입을 구분해 수정했으며 기존 F1 시험은 변경하지 않았다. 최종 `PYTHONPATH=apps/api .venv/bin/python -m pytest -q tests/backend tests/handovers`는 **141 PASS (F1 88 + F3 53)**였다. 최종 Vue 타입 검사·빌드도 PASS다. 실제 브라우저 결과는 여전히 NOT_RUN이며 이 기록은 ha 밖에서 실행한 결과다.
+
+## F3 실제 브라우저 재개 — 2026-10-09T13:07:51+09:00
+
+권한 변경 후 native Chromium156.0.8078.4 실행이 성공했고 기존 block을 해제했다. 아래 결과는 실제 PostgreSQL17의 고유 schema, 실제 FastAPI·Vue, 모델 없는 합성 입력으로 확인했다. 자동화 성공 응답을 mock으로 대체하지 않는다. 네트워크 응답 유실은 실제 commit 뒤 응답만 끊어 재현한다.
+
+| 조건 | 확인한 결과 | 기록 |
+| --- | --- | --- |
+| AC-1 | 실제 UI 생성·항목 ACK·동일 사건/Action/assignee·미해결 상태·상세 요약·reload/API restart·모바일 가로 넘침 없음 | PASS, ha seq55 |
+| AC-16 | 새 원문 revision2·확인 중 원문 보존·수동 최신 확인/재ACK·과거 revision·cutoff 이후 추가·고정 시각·ACK 후 추가 표시 | PASS, ha seq56 |
+| AC-17 | 성공한 빈 목록·실제 DB 조회 실패/복구·ACK 차단·409 표시/input 보존·명시 재확인·실제 commit 뒤 응답 유실과 동일 key replay·세션 전환 재전송 없음 | PASS, ha seq57 |
+
+시험 선택자를 정확히 좁히고 키보드 제출의 버튼 준비를 기다리는 변경(eb5ad4e)이 있어, 최종 커밋의18개 조건 유효 판정은 F3 실행 bundle에서 다시 기록한다. 기존18개 baseline 무효 기록은 삭제하지 않았다. 유효 baseline/current, 최종 SHA·완료 기록은 [F3 PROGRESS](docs/specs/f3-handover/PROGRESS.md)를 따른다. 전체 live T8·F2/F4 제품 서비스·실제 모델·배포/제출은 NOT_RUN이다.
+
+## F3 전용 PR 브랜치 재검증 — 2026-10-09T13:22:06+09:00
+
+사용자 요청 “F3작업에 대한 내용을 jgoneit에 pr올려줘”에 따라 `codex/f3-handover-pr`를 F1 PR #6 head `ec6c9f1`에서 만들었다. 대상은 `jgoneit`이며 F1 선행 병합이 필요하다. F3 추가 diff는33개 파일로, F1 목표/실행기록·기존 시험·공유 migration은 바꾸지 않았다. F1 PR의 범위/검증 설명은 보존했다.
+
+시험 시 source commit은 `740ed5a`이며 apps/scripts/tests와 의존성 파일은 원본 `fd10159`와 byte단위로 동일하다. 이후 추가한 PR 안내 문서는 실행 소스와 시험을 바꾸지 않는다.
+
+| 검사 | 결과 | 범위 |
+| --- | --- | --- |
+| `PYTHONPATH=apps/api .venv/bin/python -m pytest -q tests/backend tests/handovers` | 141 PASS | F1 88 + F3 53, 실제 PostgreSQL·HTTP·경합 |
+| `npm --prefix apps/web run build` | PASS | Vue 타입 검사·Vite |
+| `.venv/bin/python scripts/f3_browser.py AC-1` | PASS | 실제 UI 생성·인수·API 재시작·같은 DB 재조회 |
+| `.venv/bin/python scripts/f3_browser.py AC-16` | PASS | 변경 재인수·과거 revision·고정 cutoff·추가 항목 |
+| `.venv/bin/python scripts/f3_browser.py AC-17` | PASS | 실제 DB 실패·409·응답 유실·동일 키 재시도·세션 전환 |
+| 원본 앱/시험 byte동일성·F1 diff범위·공백 검사 | PASS | 기존 F1 계약/시험/기록 보존, 비밀값·history제외 |
+
+Seal18/18·완료seq98은 원본 `31052bc`에서 얻은 기록이다. 새 PR SHA의 새로운 Seal 완료라고 주장하지 않으며 위 재검증은 별도의 직접 실행이다. 입력은 합성, 모델 호출은 없음, F3 경계는 실제 UI/HTTP/PostgreSQL이다. 전체 liveT8·F2/F4 제품 통합·배포·제출은 NOT_RUN이다. 검사 작성자는 executor, assurance local이다.
 
 ## F0를 F1 기준으로 이식 — 2026-10-09
 
@@ -308,3 +358,36 @@ Python 실행에는 Starlette의 httpx TestClient deprecation 경고 1개가 있
 - `SHIFTLINK_F3_FEATURE_ROOT=<기존 5486b8f export> F2_TEST_DATABASE_URL=<시험 DB> python -m pytest -q`: **282 PASS, 0 SKIP**, 66.93초. 이전276 + main의 F2 리뷰 회귀6. 테스트 소스 기준 e551304. 실제 PostgreSQL·F3 원본 서비스 연결이며 모델 호출 없음.
 - `npm --prefix apps/web run build`, `python scripts/export_contracts.py --check`, `git diff --check origin/main...HEAD`: **PASS**. 기존 Starlette/httpx 경고1개.
 - 화면 소스는 변경하지 않아 기존 Web78/브라우저 기본2·prefix2 PASS 기록을 유지하며 이번에는 재실행하지 않았다. 실제 모델·전체 T8·F3 제품 통합·배포는 NOT_RUN을 유지한다.
+
+## F3 main 통합·승인 경계 리뷰 — 2026-10-09
+
+기준: F3 `5486b8f`에 main `c726425`를 통합한 이번 소스. 원본 F3 완료 기록과 별도의 직접 검증이며 전체 F3 결함 해결·live·배포·제출 판정이 아니다. Python 3.14 / PostgreSQL 17.11 / 기존 web 의존성 환경. 각 DB 시험은 임의 schema만 생성·정리했다.
+
+| 검증 | 결과 | 범위 |
+| --- | --- | --- |
+| `.venv/bin/python -m pytest -q tests/backend tests/handovers apps/api/tests/actions` | 315 PASS, 0 SKIP | 시험 전용 F2_TEST_DATABASE_URL 설정. F1/F2 서버·독립 계약·F3·추가 회귀 포함 |
+| `npm --prefix apps/web test` | 70 PASS | 현재 공통 Web 실행 범위. F2 독립 패널 시험 17개는 이번에 재실행하지 않음 |
+| `npm --prefix apps/web run build` | PASS | vue-tsc + Vite |
+| `.venv/bin/python scripts/export_contracts.py --check` | PASS | 공유 enum·세션 타입 일치 |
+| `.venv/bin/python scripts/f3_browser.py AC-1` | PASS | 실제 Vue/HTTP/DB 생성·ACK·API 재시작, dcf118c6a0e14f4eae98bcb27e683304 |
+| `.venv/bin/python scripts/f3_browser.py AC-16` | PASS | revision·과거 내용·일반 추가 사건·cutoff, ea61f13a493142f7bfc4196c1e36897a |
+| `.venv/bin/python scripts/f3_browser.py AC-17` | PASS | DB 오류·409·응답 유실 재시도·세션 전환, 8e76fd0ba56142268a087272047ca003 |
+
+추가 회귀 13개: 승인 경계 8개(수정 전 3 FAIL/5 PASS, 수정 후 모두 PASS), 실제 F2/F3 업무·기본 조립 2개, 서로 다른 Job의 log/SOP/case 근거 동시 발급 3개. 승인 삽입·삭제·교체·ORM/SQL 수정 거부와 전체 rollback, 정상 생성/재사용을 구분했다. 인수→새 책임자 승인→기존 담당자 착수·완료→snapshot/completion_report·재ACK를 실제 API/DB로 확인했다.
+
+F3 인증 fixture는 변경 전의 유효 세션을 준비한 뒤 권한 변경을 가해 403/401을 검사한다. 로그인 단계의 교대 미배정 거부와 현재 사업장 검사 자체는 변경하지 않았다. 기존 최신 인계 선택·목록 페이지·불확실한 명령 복구·잠금 순서를 보존했다.
+
+검증 한계: 모델 결정은 합성 입력이다. F2 작업 패널·전체 브라우저 T8·F4 사람 검증·실제 모델·배포·제출은 NOT_RUN. P2 #17/#18/#19는 미수정이며 해당 재현을 PASS로 계산하지 않는다. 과거 동일 기능 시험과 이번 결과를 합산해 새 성능·안전성 주장으로 사용하지 않는다.
+
+
+## F4 F3-main 병합·Job 조회 회귀 — 2026-10-09
+
+기준: F4 `6614d8d`에 F3 포함 main `5edcef1`을 병합한 소스. Python3.13, 실제 시험 PostgreSQL의 고유 schema. F3 export 없이 기본 production_ports/routes를 사용했다.
+
+- 신규 Web 회귀3: 수정 전 Job503 후 재검토/저장 성공 재조회2 FAIL, Incident 조회 실패 차단1 PASS. 수정 후3 PASS. F1의 Job 조회 실패 시 거부 명령 보존 시험도 PASS.
+- `F2_TEST_DATABASE_URL=<시험 DB> python -m pytest -q tests/backend tests/handovers apps/api/tests/actions`: **348 PASS, 0 SKIP**, 99.92초. F3 기본 구성의 인수→완료→새 owner 해결 및 양방향 ACK/해결 경합 포함. 기존 Starlette/httpx 경고와 Pydantic alias 경고2개.
+- `npm --prefix apps/web test`: **81 PASS**. 공통 Web70 + F4 기존8 + 신규3. 별도 F2 독립 화면17은 이번 범위에서 재실행하지 않았다.
+- `npm --prefix apps/web run build`, `python scripts/export_contracts.py --check`, staged/unstaged diff check: **PASS**.
+- `PYTHONPATH=apps/api python scripts/f4_browser.py`: 기본 prefix **2 PASS**(5.8초), `VITE_API_BASE_URL=/gateway/api/v1/` **2 PASS**(5.2초). 실제 F3 ACK/F2 완료 HTTP 선행, F4 UI 해결/RETURN, 해결된 인계 표시, API 재시작 후 불변 case 조회.
+- `PYTHONPATH=apps/api python scripts/f3_browser.py AC-1`: **1 PASS**(4.7초), 생성·인수 UI/HTTP/DB·재시작 확인. 근거 `.cache/f3-browser/1b3aec4dad2046f79bbc9a3dfaf4a229/result.json`. 첫 실행은 harness가 요구한 `.venv/bin/python` 부재로 앱 시험 시작 전 실패했고, 기존 시험 venv를 임시 연결한 후 통과했다. 임시 연결은 제거했다.
+- **NOT_RUN:** 실제 모델, 전체 질문/답변·F2/F3/F4 모든 화면을 포함한 T8, 배포·제출. F3 AC-16/17은 이번 실행에 포함하지 않음. F4 나머지 P2(헤더 명세, 해결 후 승인 표시, case 인수 이력)는 미수정이다.

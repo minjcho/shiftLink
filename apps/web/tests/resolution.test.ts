@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
+import { h } from 'vue';
+import IncidentDetail from '../src/features/intake/IncidentDetail.vue';
 import ResolutionPanel from '../src/features/resolution/ResolutionPanel.vue';
 import CommandFeedback from '../src/components/CommandFeedback.vue';
-import { detail, supervisor, maintainer, response, failure } from './fixtures';
+import { detail, equipment, job, supervisor, maintainer, response, failure } from './fixtures';
 import type { Resolution } from '../src/features/resolution/types';
 const ready: Resolution = { ready: true, unmet_requirements: [], checked_version: 6, can_resolve: true, can_return: true, latest_verification: null, case: null };
 const pending = (patch = {}) => ({ ...detail({ status: 'PENDING_VERIFICATION', version: 6 }), resolution: { ...ready }, ...patch });
@@ -14,9 +16,50 @@ function render(refresh = vi.fn().mockResolvedValue(undefined)) {
   return wrapper;
 }
 const button = (text: string) => wrapper.findAll('button').find(b => b.text() === text)!;
+function renderDetail() {
+  wrapper = mount(IncidentDetail, {
+    props: { id: 'incident-1', me: supervisor, equipment },
+    slots: { resolution: ({ detail, session, refresh }) => h(ResolutionPanel, { detail, session, refresh }) },
+  });
+}
 async function write() { await wrapper.find('textarea').setValue('  확인한 근거와 사유\n'); await wrapper.find('form').trigger('submit'); await flushPromises(); }
 
 describe('F4 verification recovery and authority', () => {
+  it.each(['job', 'incident'])('only the authoritative Incident read gates stale review when %s fails', async failing => {
+    let version = 6;
+    let fail = false;
+    const fetcher = vi.fn().mockImplementation((url: string) => {
+      const isJob = url.includes('/jobs/');
+      if (fail && (failing === 'job' ? isJob : !isJob)) return Promise.resolve(failure('SERVICE_UNAVAILABLE', 503));
+      return Promise.resolve(response(isJob ? job : pending({ version })));
+    });
+    vi.stubGlobal('fetch', fetcher); renderDetail(); await flushPromises();
+    await wrapper.find('#verification-notes').setValue('검토 내용 보존');
+    version = 7;
+    await button('새로고침').trigger('click'); await flushPromises();
+    expect(button('해결 확인').attributes()).toHaveProperty('disabled');
+    fail = true;
+    await button('최신 내용 다시 확인').trigger('click'); await flushPromises();
+    expect('disabled' in button('해결 확인').attributes()).toBe(failing === 'incident');
+    expect((wrapper.find('#verification-notes').element as HTMLTextAreaElement).value).toBe('검토 내용 보존');
+    if (failing === 'job') expect(wrapper.text()).toContain('Job 조회 실패');
+  });
+  it('does not report a failed verification reread when only Job diagnostics fail after saving', async () => {
+    let resolved = false;
+    const fetcher = vi.fn().mockImplementation((url: string, init: RequestInit) => {
+      if (init.method === 'POST') { resolved = true; return Promise.resolve(response(saved)); }
+      if (url.includes('/jobs/')) return Promise.resolve(resolved ? failure('SERVICE_UNAVAILABLE', 503) : response(job));
+      return Promise.resolve(response(pending(resolved ? { status: 'RESOLVED', version: 7 } : {})));
+    });
+    vi.stubGlobal('fetch', fetcher); renderDetail(); await flushPromises();
+    await wrapper.find('#verification-notes').setValue('최종 확인');
+    await wrapper.findComponent(ResolutionPanel).find('form').trigger('submit'); await flushPromises();
+    expect(wrapper.text()).toContain('해결 이력을 저장했습니다');
+    expect(wrapper.text()).toContain('Job 조회 실패');
+    expect(wrapper.text()).not.toContain('저장 성공 후에는 재조회만');
+    expect(wrapper.findAll('button').some(b => b.text() === '저장 결과 다시 조회')).toBe(false);
+    expect(fetcher.mock.calls.filter(c => c[1].method === 'POST')).toHaveLength(1);
+  });
   it('requires notes and server readiness; permits RETURN when readiness fails', async () => {
     render();
     expect(button('해결 확인').attributes()).toHaveProperty('disabled');

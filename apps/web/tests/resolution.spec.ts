@@ -30,7 +30,10 @@ test('F4 resolves with current owner, reads immutable case after API restart and
   const result = (await response.json()).data;
   expect(result.incident_version).toBe(target.version + 1);
   await expect(page.getByRole('heading', { name: '해결 확인 기록', exact: true })).toBeVisible();
-  if (owner === 'incoming_supervisor') await expect(page.getByText('해결된 사건 · 추가 인수 확인 불필요', { exact: true })).toBeVisible();
+  if (owner === 'incoming_supervisor') {
+    await expect(page.getByText('해결된 사건 · 과거 인계', { exact: true })).toBeVisible();
+    await expect(page.getByText('이력은 조회할 수 있으며 새 인수는 할 수 없습니다.', { exact: false })).toBeVisible();
+  }
   await page.getByText('해결 당시 기록 보기', { exact: true }).click();
   await expect(page.getByText(`Case ${result.case_id}`, { exact: false })).toBeVisible();
   const cases = await (await page.request.get(`${base}/cases?incident_id=${target.incident_id}`)).json();
