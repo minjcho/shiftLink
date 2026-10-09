@@ -49,3 +49,37 @@ Chromium 설치 전 첫 시도는 실행 파일 부재로 실패했고 설치 �
 상세한 미완료 항목과 최종 상태는 docs/specs/f1-intake-investigation/PROGRESS.md를 따른다. 비밀값·원본 모델 추론은 기록하지 않았다.
 
 추가 중단 상태: 신규 tests/backend/test_boundary_integration.py 21개 사례는 NOT_RUN이다. F3 별도 구현 디렉터리는 이번 F1 검증과 커밋에서 제외했다.
+
+## F1 재개 직접 검증 — 2026-10-09T13:09:06.465724+09:00
+
+제품 소스 기준 e97962cce31d6a76a715b4584feab904a2d3a064, 직접 실행 시 변경은 F1 실행 기록뿐이었다. PostgreSQL 시험 전용 컨테이너와 임의 schema를 재사용했고 .env를 읽지 않았다. 다음 직접 결과와 후속 Seal 커밋 기준 결과를 구별한다.
+
+| 검사 | 결과 | 관측한 경계 |
+| --- | --- | --- |
+| Playwright Chromium 최소 기동 | PASS | headless 기동·페이지 생성·title 읽기·정상 종료, 과거 권한 오류 재현 없음 |
+| `.venv/bin/python -m pytest -q` | 88 PASS | F1 서버 전체. 최신 timeout/fence/Approval/readiness 및 경계 21개 포함 |
+| `npm --prefix apps/web run test` | 30 PASS | 화면 상태 13, API·입력·세션·폴링 17 |
+| `npm --prefix apps/web run build` | PASS | Vue 타입 검사와 Vite 빌드 |
+| `python3 scripts/check_f1.py AC-33` | 1 PASS | 실제 migration·Vue·HTTP·PostgreSQL, API/worker 재시작, 동일 원문/질문·지정 답변·새 Job/run |
+| L1a/L1b/L2/L3·F2/F4 제품 서비스·전체 통합 | NOT_RUN | 브라우저 모델 fake, F2/F4 contract adapter; 별도 통합 평가 |
+
+브라우저 모바일 화면도 확인했다. local artifact는 `apps/web/test-results/real-api-AC33-real-UI---HT-eaa44-estart-and-designated-reply/f1-mobile-persistent-reply.png`다. harness는 시험 API/worker/Vue와 생성 schema를 정리했다. 시험 컨테이너는 보존했다. 서버 검사에서 Starlette TestClient의 httpx 사용 deprecated 경고 1개가 있었으나 실패는 없었다.
+
+34개 AC의 최신 커밋별 baseline/current seq와 완료 여부는 [F1 Seal 기록](docs/specs/f1-intake-investigation/PROGRESS.md)을 따른다. 검사 작성자는 executor, assurance local이다. 과거 실패는 위 이력에 그대로 남긴다.
+
+## F1 전용 PR 분리 검증 — 2026-10-09T13:15:25.775226+09:00
+
+사용자가 PR 대상을 jgoneit으로 지정했다. 원격 대상은 구현 전 공통 명세 b11945b, 소스는 F1 전용 codex/f1-intake-investigation-pr이다. 원본 로컬 jgoneit의 F3는 유지하며 PR diff에 포함하지 않는다.
+
+| 검사 | 결과 | 실행 범위 |
+| --- | --- | --- |
+| `.venv/bin/python -m pytest -q` | 88 PASS | 분리된 F1 HTTP/PostgreSQL·worker·도구·계약 시험 |
+| `npm --prefix apps/web run test` | 30 PASS | F1 화면·세션·입력·폴링 |
+| `npm --prefix apps/web run build` | PASS | F1 Vue 타입 검사·프로덕션 빌드 |
+| `python3 scripts/check_f1.py AC-33` | 1 PASS | 실제 F1 화면→HTTP→PostgreSQL, API/worker 재시작, 같은 질문 답변·새 run |
+| F1 소스 범위 대조 | PASS | apps/tests/F1 scripts/환경 구성은 0fbdbac과 동일. F3 runtime hook·router·화면 없음 |
+| `git diff --check` | PASS | 공백 오류 없음 |
+
+직접 시험 당시 HEAD는 9c098cc이고 후속 F1 문서/기록 가져오기 변경만 dirty였다. 실행 소스와 시험 정의는 0fbdbac과 동일하다. 최종 PR commit은 문서·기록만 더하며 같은 실행 소스를 유지한다. PostgreSQL은 기존 시험 전용 컨테이너와 새 임의 schema를 사용했고 harness는 시험 프로세스/schema를 정리했다. 의존성은 동일한 기존 로컬 설치를 재사용했다.
+
+보존한 Seal seq 84는 F3 포함 tree b4e63f4에서 생성된 과거 완료 기록이다. 이것을 PR 분리 SHA의 새로운 ha 완료로 보고하지 않는다. 이 절의 결과는 별도로 직접 실행한 검증이다. 실제 모델·F2/F3/F4 제품 통합·배포·제출은 NOT_RUN이며 모델 fake와 계약 대체를 명시한다.

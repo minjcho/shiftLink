@@ -2,13 +2,13 @@
 
 ## 현재 상태
 
-기준: v0.3 구현 문서 · 2026-10-09. F1 구현과 일부 독립 검증을 진행했으나 실제 브라우저 실행 권한 오류로 중단했다. 조건별 커밋 기준 판정과 완료 보고는 [F1 Seal 기록](docs/specs/f1-intake-investigation/PROGRESS.md)을 따른다. 실제 모델과 F2/F3/F4 전체 통합은 아직 확인하지 않았다.
+기준: v0.3 구현 문서 · 2026-10-09. F1의 Chromium 실행 차단이 해소됐고 실제 UI→HTTP→PostgreSQL, API·worker 재시작, 같은 질문에 대한 지정자 답변과 새 run 연결을 직접 확인했다. 원본 커밋의 Seal 완료 기록과 이번 F1 전용 PR 분리 소스의 직접 재검증은 [F1 실행 기록](docs/specs/f1-intake-investigation/PROGRESS.md) 및 [시험 결과](TEST_RESULTS.md)를 따른다. 실제 모델과 F2/F3/F4 전체 통합은 아직 확인하지 않았다.
 
 | ID | 작업 | 초기 담당 | 상태 | 다음 확인 |
 |---|---|---|---|---|
 | DOC | 구현 문서·환경 예시·ignore 규칙 | Codex 작성, 팀 검토 대기 | DONE | 정적 검사 완료, 실제 담당 착수 확인 |
 | F0 | 공통 실행 기반·계약 | 재곤 통합, 민재 검토 | IN_PROGRESS | F1용 최소 DB·세션·seed·receipt 제공; 전체 F0 완료 별도 |
-| F1 | 접수·AI 조사·질문과 답변 | 재곤 | BLOCKED | AC-33 Chromium 실행 권한; 최종 WIP 재검증·ha 기록·live/타 기능 통합 대기 |
+| F1 | 접수·AI 조사·질문과 답변 | 재곤 | [Seal 판정](docs/specs/f1-intake-investigation/PROGRESS.md) | 직접 서버 88개·화면 30개·실제 브라우저 및 빌드 PASS; live/타 기능 전체 통합은 별도 |
 | F2 | 작업 제안 확정·승인·착수·결과 | 민재 | NOT_STARTED | F1 finalizer와 Action 생성 서비스 연결 |
 | F3 | 교대 인계·인수 | 재곤 | NOT_STARTED | snapshot·ACK·owner 이전 |
 | F4 | 최종 검증·해결 이력 | 민재 | NOT_STARTED | 최신 조건의 사람 검증과 case |

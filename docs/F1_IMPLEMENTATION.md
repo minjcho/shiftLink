@@ -81,4 +81,8 @@ PYTHONPATH=apps/api .venv/bin/python scripts/f1_browser.py
 
 F1 전체 통합 완료에는 SPEC의 L1a/L1b/L2/L3 실제 모델 run과 F2/F3/F4 서비스 연결 평가가 더 필요하다. 배포·제출·실제 현장 설비 검증은 이번 작업에 포함되지 않는다.
 
-현재 이 호스트의 native Chromium 검증은 MachPortRendezvous 권한 거부로 BLOCKED다. 위 브라우저 명령이 이 환경에서 통과했다고 주장하지 않는다. 재개 시 브라우저 실행이 허용된 환경과 최신 WIP 검증이 필요하다.
+2026-10-09 재개 세션에서 Chromium 기동과 실제 AC-33 브라우저 흐름이 통과했다. 같은 PostgreSQL의 원문·질문을 API/worker 재시작 후 다시 읽고 지정 답변과 별도 새 run을 확인했다. 모델은 명시적인 fake이며 실제 모델 성공 증거가 아니다. 과거 권한 실패 기록은 [TEST_RESULTS](../TEST_RESULTS.md)에 보존하고, 커밋 기준 Seal 판정은 실행 기록에서 확인한다.
+
+### F1 전용 PR 소스
+
+이 PR은 F1 단독 실행 구성을 사용한다. F3 기본 서비스·router·화면은 포함하지 않고 외부 기능은 위 FeaturePorts 계약으로 연결한다. 기존 Seal 완료 기록은 원본 b4e63f4에 대한 결과이며, F1 전용 소스에서 다시 실행한 서버88·화면30·빌드·실제 Chromium 결과는 TEST_RESULTS.md의 분리 검증 절에 기록했다.
