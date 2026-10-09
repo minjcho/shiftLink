@@ -108,7 +108,7 @@ PostgreSQL·SQLAlchemy·Alembic을 사용할 계획이다. ID는 서버 발급 U
 | messages | id, site_id, incident_id, author_id, kind, text, reply_to_request_id, action_id, correction_of, observed_at, received_at |
 | requests | id, incident_id, target_user_id, purpose_code, question, is_required, status, evidence_refs, response_message_id, version, created_at, answered_at |
 
-Message.kind는 `REPORT / NOTE / REPLY / ACTION_RESULT / CORRECTION`. 원문 text는 append-only다. correction_of가 있으면 같은 Incident의 기존 Message인지 검사한다. Request의 목적 코드는 `VERIFY_SCOPE / VERIFY_RESULT` 서버 허용 목록이며 OPEN 중복 키는 `(incident_id, target_user_id, purpose_code)`다. 질문 답변은 같은 Incident의 OPEN Request와 지정 대상자만 허용한다. Request.version은 생성 1, 답변 시 +1이다.
+Message.kind는 `REPORT / NOTE / REPLY / ACTION_RESULT / CORRECTION`. 원문 text는 append-only다. correction_of가 있으면 같은 Incident의 기존 Message인지 검사한다. `reply_to_request_id`와 `correction_of`는 동시에 지정할 수 없다. 답변과 정정은 별도 입력이며 동시 지정 요청은 저장 전에 거부한다. Request의 목적 코드는 `VERIFY_SCOPE / VERIFY_RESULT` 서버 허용 목록이며 OPEN 중복 키는 `(incident_id, target_user_id, purpose_code)`다. 질문 답변은 같은 Incident의 OPEN Request와 지정 대상자만 허용한다. Request.version은 생성 1, 답변 시 +1이다.
 
 analysis에는 `run_id, base_version, decision, facts, hypotheses, missing_information, source_refs, reason`을 저장한다. `is_stale = base_version != incident.version`은 보수적으로 계산한다. 동일 run이 만든 질문·Action도 버전을 증가시키므로 분석 기준 버전과 실제 반영 후 버전을 함께 진단에 표시한다.
 

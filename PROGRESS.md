@@ -8,7 +8,7 @@
 |---|---|---|---|---|
 | DOC | 구현 문서·환경 예시·ignore 규칙 | Codex 작성, 팀 검토 대기 | DONE | 정적 검사 완료, 실제 담당 착수 확인 |
 | F0 | 공통 실행 기반·계약 | 재곤 통합, 민재 검토 | IN_PROGRESS | F1 기준 Compose·세션·worker·타입·화면 slot 보강, PR #9 반영 |
-| F1 | 접수·AI 조사·질문과 답변 | 재곤 | [Seal 판정](docs/specs/f1-intake-investigation/PROGRESS.md) | F0 통합·리뷰 보완 후 서버 124개·화면 65개·브라우저 기본2/변경 prefix2·빌드 PASS; live/타 기능 전체 통합은 별도 |
+| F1 | 접수·AI 조사·질문과 답변 | 재곤 | [Seal 판정](docs/specs/f1-intake-investigation/PROGRESS.md) | 후속 리뷰 보완 후 서버 133개·화면 70개·브라우저 기본3/변경 prefix3·빌드 PASS; F2 추가 Action은 이슈 #11로 추적; live/타 기능 전체 통합은 별도 |
 | F2 | 작업 제안 확정·승인·착수·결과 | 민재 | IN_PROGRESS | F1 기준 서버 연결·실제 HTTP/DB 검증 PASS. 작업 패널·F3/F4 전체 통합·live 후속 |
 | F3 | 교대 인계·인수 | 재곤 | IN_PROGRESS | 별도 PR #7, 통합 대기 |
 | F4 | 최종 검증·해결 이력 | 민재 | IN_PROGRESS | 준비 검사만 PR #5, 사람 검증·case 후속 |
@@ -22,6 +22,8 @@
 F1 PR #6에 F0 보강 PR #9가 병합됐다. #8의 독립 schema·worker·화면을 중복 병합하지 않는다. F2/F3/F4는 [새 F0 연결 계약](docs/17_F0_FOUNDATION.md)에 맞춰 ORM Session·FeaturePorts·상세 slot을 연결한다. 실제 모델 L1a/L1b/L2/L3는 별도다. F1 리뷰 수정은 아래 보완 명세와 최신 직접 검증 기록을 따른다. 기존 Seal 완료 기록을 이번 F0 검증으로 바꾸지 않는다.
 
 리뷰 다섯 항목의 수정 범위는 [리뷰 수정 명세](docs/specs/f1-review-fixes/SPEC.md)에 정리했다. 불확실한 접수 복구·잠금 순서·인계 요약·모델 입력 예산·API prefix를 보완했으며 이번 직접 검증은 과거 Seal 완료 기록과 구분한다.
+
+후속 네 리뷰는 [입력·목록·검색 보완 명세](docs/specs/f1-review-followups/SPEC.md)를 따른다. 답변·정정 혼합 입력 거부, 읽은 목록 페이지의 폴링 유지, 실제 문서 내용에 기반한 검색을 수정했다. 기본 실행에 아직 연결되지 않은 F2 어댑터의 반환 외 Action 생성은 [이슈 #11](https://github.com/minjcho/shiftLink/issues/11)로 남겼으며, F2 통합 전에 해결해야 한다.
 
 ## 시간순 기록
 
