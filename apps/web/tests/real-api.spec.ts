@@ -1,0 +1,42 @@
+import { test, expect } from '@playwright/test';
+import { existsSync, writeFileSync } from 'node:fs';
+
+test('AC33 real UI -> HTTP -> PostgreSQL survives API/worker restart and designated reply', async ({ page }, testInfo) => {
+  const raw = `CV-03에서 평소와 다른 소리와 진동을 느꼈어요. 정비팀이 초기 점검을 완료했다고 들었어요. ${Date.now()}`;
+  const reply = '외관만 확인했습니다. 추가 점검 결과는 없습니다.';
+  const writes: { path: string; status: number; body: unknown }[] = [];
+  page.on('response', async r => { if (r.request().method() === 'POST' && !r.url().includes('/demo/session')) { try { writes.push({ path: new URL(r.url()).pathname, status: r.status(), body: await r.json() }); } catch { /* Transport failure is asserted through UI. */ } } });
+  await page.goto('/incidents');
+  await page.getByLabel('데모 계정 전환').selectOption('reporter'); await page.getByRole('button', { name: '전환', exact: true }).click();
+  await page.getByLabel('설비', { exact: true }).selectOption('00000000-0000-4000-8000-000000000103');
+  await page.getByLabel('제보 원문', { exact: true }).fill(raw);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name: '제보 저장', exact: true }).focus(); await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/incidents\/[0-9a-f-]+$/);
+  const incidentUrl = page.url(); const incidentId = incidentUrl.split('/').at(-1)!;
+  await expect(page.locator('.timeline')).toContainText(raw);
+  await expect(page.locator('.question-card').first()).toBeVisible({ timeout: 30000 });
+  let before = (await (await page.request.get(`/api/v1/incidents/${incidentId}`)).json()).data;
+  const request = before.requests.find((r: { status: string }) => r.status === 'OPEN');
+  expect(request.is_required).toBe(true); expect(request.target_user_id).toBe('00000000-0000-4000-8000-000000000202');
+  expect(await page.getByLabel('이 질문에 대한 답변').count()).toBe(0);
+  const firstJobId = before.latest_job.id;
+  const firstRunId = (await (await page.request.get(`/api/v1/jobs/${firstJobId}`)).json()).data.latest_run_id;
+  const sentinel = process.env.SHIFTLINK_RESTART_REQUEST;
+  if (!sentinel) throw new Error('AC33 requires the PostgreSQL API/worker restart harness sentinel');
+  if (sentinel) { writeFileSync(sentinel, 'restart'); await expect.poll(() => existsSync(`${sentinel}.done`), { timeout: 30000 }).toBe(true); }
+  await page.reload(); await expect(page.locator('.timeline')).toContainText(raw); await expect(page.locator('.question-card').filter({ hasText: request.id })).toBeVisible();
+  await page.getByLabel('데모 계정 전환').selectOption('maintainer'); await page.getByRole('button', { name: '전환', exact: true }).click();
+  const card = page.locator('.question-card').filter({ hasText: request.id }); await card.getByLabel('이 질문에 대한 답변').fill(reply); await card.getByRole('button', { name: '답변 저장', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: '답변 저장됨' })).toBeVisible();
+  await page.reload(); await expect(page.locator('.timeline')).toContainText(raw); await expect(page.locator('.timeline')).toContainText(reply); await expect(card).toContainText('답변 완료');
+  const after = (await (await page.request.get(`/api/v1/incidents/${incidentId}`)).json()).data;
+  const sameRequest = after.requests.find((r: { id: string }) => r.id === request.id);
+  expect(sameRequest.status).toBe('ANSWERED'); expect(after.latest_job.id).not.toBe(firstJobId);
+  await expect.poll(async () => (await (await page.request.get(`/api/v1/jobs/${after.latest_job.id}`)).json()).data.latest_run_id, { timeout: 30000 }).not.toBeNull();
+  const newJob = (await (await page.request.get(`/api/v1/jobs/${after.latest_job.id}`)).json()).data;
+  expect(newJob.latest_run_id).not.toBe(firstRunId); expect(newJob.mode).toBe('fake');
+  await testInfo.attach('actual-f1-boundary-ids.json', { body: JSON.stringify({ incidentId, requestId: request.id, firstJobId, firstRunId, nextJobId: newJob.id, nextRunId: newJob.latest_run_id, mode: newJob.mode, restarted: !!sentinel, writes }, null, 2), contentType: 'application/json' });
+  await page.screenshot({ path: testInfo.outputPath('f1-mobile-persistent-reply.png'), fullPage: true });
+});

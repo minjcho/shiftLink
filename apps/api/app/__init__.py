@@ -1,0 +1,1 @@
+"""ShiftLink application."""
