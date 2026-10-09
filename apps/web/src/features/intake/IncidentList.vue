@@ -3,16 +3,18 @@ import { IncidentStatusValues } from '../../lib/contracts';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { api, Command, errorMessage, SessionChanged } from '../../lib/api';
 import type { Equipment, Incident, IntakeResult, Page } from '../../lib/types';
-import { label, person, time } from '../../lib/presentation';
+import UiIcon from '../../components/UiIcon.vue';
+import { label, personName, time } from '../../lib/presentation';
 import { usePolling } from '../../lib/polling';
 import CommandFeedback from '../../components/CommandFeedback.vue';
-const props = defineProps<{ equipment: Equipment[] }>();
+const props = defineProps<{ equipment: Equipment[]; initialStatus?: string; archive?: boolean }>();
 const emit = defineEmits<{ open: [id: string, notice?: string] }>();
 const equipmentId = ref('');
 const text = ref('');
 const command = reactive(new Command());
 const scope = ref('all');
-const status = ref('');
+const status = ref(props.initialStatus ?? '');
+const focusIntake = () => document.getElementById('intake-text')?.focus();
 const filterEquipment = ref('');
 const items = ref<Incident[] | null>(null);
 const nextCursor = ref<string | null>(null);
@@ -80,29 +82,24 @@ async function review() {
 }
 </script>
 <template>
-  <div class="intro"><p class="eyebrow">01 / 접수와 확인</p><h1>현장의 기록을<br>다음 확인으로 연결합니다.</h1><p>관찰한 내용은 원문 그대로 남고, 확인이 필요한 내용은 담당자에게 전달됩니다.</p></div>
-  <div class="list-layout">
-    <section class="panel intake-form" aria-labelledby="intake-heading">
-      <span class="section-number">새 기록</span><h2 id="intake-heading">이상 징후 제보</h2>
-      <form @submit.prevent="submit()" :aria-busy="command.busy">
-        <label for="intake-equipment">설비</label>
-        <select id="intake-equipment" v-model="equipmentId" required :disabled="command.busy || command.hasPending"><option disabled value="">설비 선택</option><option v-for="item in equipment" :key="item.id" :value="item.id">{{ item.code }} · {{ item.label ?? item.aliases.join(', ') }}</option></select>
-        <label for="intake-text">제보 원문</label>
-        <textarea id="intake-text" v-model="text" rows="7" required maxlength="10000" placeholder="어떤 설비에서 무엇을 관찰했는지 적어 주세요." :disabled="command.busy || command.hasPending" :aria-invalid="!!command.error" :aria-describedby="command.error ? 'intake-error' : 'intake-help'"></textarea>
-        <p id="intake-help" class="field-help">직접 관찰한 내용과 전해 들은 내용을 구분해 주세요.</p>
-        <CommandFeedback :command="command" error-id="intake-error" @retry="submit(true)" @review="review" />
-        <button class="primary wide" type="submit" :disabled="!canSubmit">{{ command.busy ? '저장 중…' : '제보 저장' }}</button>
-      </form>
-    </section>
-    <section aria-labelledby="list-heading" class="incidents-section">
-      <div class="section-heading"><div><span class="section-number">진행 상황</span><h2 id="list-heading">사건 목록</h2></div><button class="secondary" :disabled="loading" @click="refresh()">새로고침</button></div>
-      <div class="filters"><div><label for="scope-filter">내 확인 요청·업무</label><select id="scope-filter" v-model="scope"><option value="all">사업장 전체</option><option value="mine">나와 관련된 사건</option></select></div><div><label for="status-filter">사건 상태</label><select id="status-filter" v-model="status"><option value="">미해결 전체</option><option v-for="s in IncidentStatusValues" :key="s" :value="s">{{ label(s) }}</option></select></div><div><label for="equipment-filter">설비 필터</label><select id="equipment-filter" v-model="filterEquipment"><option value="">모든 설비</option><option v-for="item in equipment" :key="item.id" :value="item.id">{{ item.code }}</option></select></div></div>
-      <p class="freshness">마지막 성공 조회: {{ time(lastSuccess) }}</p>
-      <p v-if="error" role="alert" class="notice error">{{ error }} {{ items !== null ? '이전 조회 내용을 표시하고 있습니다.' : '아직 목록을 확인하지 못했습니다.' }}</p>
-      <p v-if="items === null && loading" role="status">사건 조회 중…</p>
-      <div v-if="items !== null && items.length === 0" class="empty-state"><h3>해당하는 사건이 없습니다.</h3><p>현재 필터로 조회한 결과입니다.</p></div>
-      <ul v-if="items?.length" class="incident-list"><li v-for="item in items" :key="item.id"><a :href="`/incidents/${item.id}`" @click.prevent="emit('open', item.id)"><div class="incident-card-top"><span class="identifier">{{ item.display_id }}</span><span class="badge">{{ label(item.status) }}</span></div><h3>{{ equipment.find(e => e.id === item.equipment_id)?.code ?? item.equipment_id }} · {{ item.title ?? '제보 기록' }}</h3><p v-if="item.waiting_for_input" class="attention">필수 질문 · 담당자 답변 대기</p><p v-if="item.review_required" class="attention">후속 검토 필요</p><p v-if="item.open_request_count !== undefined || item.unfinished_action_count !== undefined">미응답 질문 {{ item.open_request_count ?? '미수집' }} · 미완료 작업 {{ item.unfinished_action_count ?? '미수집' }}</p><p class="muted">현재 책임자: {{ person(item.owner_id) }}</p><small>최근 변경 {{ time(item.updated_at) }} · 업무 버전 {{ item.version }}</small></a></li></ul>
-      <button v-if="nextCursor" class="secondary wide" :disabled="loading" @click="loadMore">다음 사건 보기</button>
-    </section>
+  <div class="incident-workspace view-enter">
+    <header class="page-heading"><div><p class="eyebrow">{{ archive ? 'ARCHIVE / 완료된 사건' : 'INCIDENTS / 현장 업무' }}</p><h1>{{ archive ? '해결 이력' : '사건 작업대' }}<span class="heading-dot">.</span></h1><p class="muted">{{ archive ? '사람의 최종 확인으로 마무리된 사건을 다시 확인하세요.' : '확인이 필요한 기록부터, 다음 교대에 이어질 업무까지.' }}</p></div><button v-if="!archive" class="primary new-incident" @click="focusIntake"><UiIcon name="plus" />새 제보 작성</button></header>
+    <div class="list-layout" :class="{ 'archive-layout': archive }">
+      <section aria-labelledby="list-heading" class="incidents-section">
+        <div class="section-heading"><div class="list-section-title"><h2 id="list-heading">사건 목록</h2><span v-if="items !== null" class="result-count">{{ items.length }}{{ nextCursor ? '+' : '' }}</span></div><button class="text-button" :disabled="loading" @click="refresh()">새로고침</button></div>
+        <div class="filters"><div><label for="scope-filter">내 확인 요청·업무</label><select id="scope-filter" v-model="scope"><option value="all">사업장 전체</option><option value="mine">나와 관련된 사건</option></select></div><div><label for="status-filter">사건 상태</label><select id="status-filter" v-model="status"><option value="">미해결 전체</option><option v-for="s in IncidentStatusValues" :key="s" :value="s">{{ label(s) }}</option></select></div><div><label for="equipment-filter">설비 필터</label><select id="equipment-filter" v-model="filterEquipment"><option value="">모든 설비</option><option v-for="item in equipment" :key="item.id" :value="item.id">{{ item.code }}</option></select></div></div>
+        <p v-if="error" role="alert" class="notice error">{{ error }} {{ items !== null ? '이전 조회 내용을 표시하고 있습니다.' : '아직 목록을 확인하지 못했습니다.' }}</p>
+        <div v-if="items === null && loading" class="loading-state" role="status"><span class="loading-line"></span>사건 조회 중…</div>
+        <div v-if="items !== null && items.length === 0" class="empty-state"><div class="empty-drawing" aria-hidden="true"><UiIcon name="inbox" /><span class="empty-signal"></span></div><p class="section-number">NOTHING TO FOLLOW UP</p><h3>해당하는 사건이 없습니다.</h3><p>현재 필터로 조회한 결과입니다.</p><button v-if="!archive" class="text-button" @click="focusIntake">새로운 현장 기록 남기기 <span aria-hidden="true">↗</span></button></div>
+        <div v-if="items?.length" class="list-columns" aria-hidden="true"><span>사건 / 설비</span><span>현재 상태</span><span>책임자</span></div>
+        <ul v-if="items?.length" class="incident-list"><li v-for="item in items" :key="item.id"><a :href="`/incidents/${item.id}`" @click.prevent="emit('open', item.id)"><div class="incident-main"><div class="incident-card-top"><span class="identifier">{{ item.display_id }}</span><span class="equipment-code">{{ equipment.find(e => e.id === item.equipment_id)?.code ?? item.equipment_id }}</span></div><h3>{{ item.title ?? '제보 기록' }}</h3><p v-if="item.waiting_for_input" class="attention">담당자 답변 대기</p><p v-if="item.review_required" class="attention">후속 검토 필요</p><small v-if="item.open_request_count !== undefined || item.unfinished_action_count !== undefined">미응답 질문 {{ item.open_request_count ?? '미수집' }} · 미완료 작업 {{ item.unfinished_action_count ?? '미수집' }}</small></div><span class="badge" :data-status="item.status">{{ label(item.status) }}</span><div class="incident-owner"><span>{{ personName(item.owner_id) }}</span><small>{{ time(item.updated_at) }}</small><span class="row-arrow" aria-hidden="true">↗</span></div></a></li></ul>
+        <div class="list-footer"><p class="freshness"><span class="freshness-dot" :class="{ loading }"></span>마지막 성공 조회: {{ time(lastSuccess) }}</p><button v-if="nextCursor" class="secondary" :disabled="loading" @click="loadMore">다음 사건 보기</button></div>
+        <slot name="handover" />
+      </section>
+      <section v-if="!archive" class="panel intake-form" aria-labelledby="intake-heading"><div class="intake-heading"><span class="form-icon"><UiIcon name="note" /></span><span class="section-number">NEW REPORT</span></div><h2 id="intake-heading">현장의 변화를 남겨주세요.</h2><p class="muted">작은 기록에서 다음 확인이 시작됩니다.</p>
+        <form @submit.prevent="submit()" :aria-busy="command.busy"><label for="intake-equipment">설비</label><select id="intake-equipment" v-model="equipmentId" required :disabled="command.busy || command.hasPending"><option disabled value="">설비 선택</option><option v-for="item in equipment" :key="item.id" :value="item.id">{{ item.code }} · {{ item.label ?? item.aliases.join(', ') }}</option></select><label for="intake-text">제보 원문</label><textarea id="intake-text" v-model="text" rows="6" required maxlength="10000" placeholder="무엇을 관찰하셨나요?
+발생한 설비, 상황과 확인한 내용을 남겨주세요." :disabled="command.busy || command.hasPending" :aria-invalid="!!command.error" :aria-describedby="command.error ? 'intake-error' : 'intake-help'"></textarea><p id="intake-help" class="field-help">직접 관찰한 내용과 전해 들은 내용을 구분해 주세요.</p><CommandFeedback :command="command" error-id="intake-error" @retry="submit(true)" @review="review" /><button class="primary wide" type="submit" :disabled="!canSubmit">{{ command.busy ? '저장 중…' : '제보 저장' }}<span aria-hidden="true">↗</span></button></form><p class="form-footnote">원문은 그대로 보존됩니다.</p>
+      </section>
+    </div>
   </div>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { CommandFailure, prepareCommand } from './client'
+import { personName } from '../../lib/presentation'
 import type { ActionView, ApprovalView, CommandKind, EvidenceOption, IncidentView,
   PendingCommand, ResultView, SendCommand, SessionView } from './types'
 
@@ -11,6 +12,7 @@ const props = defineProps<{
   approvals: ApprovalView[]
   result: ResultView | null
   evidenceOptions: EvidenceOption[]
+  evidenceBaseUrl?: string
   send: SendCommand
   refresh: () => Promise<void>
 }>()
@@ -122,17 +124,18 @@ function submit(kind: CommandKind, decision?: 'APPROVE' | 'REJECT') {
 
 <template>
   <section class="action-panel" aria-labelledby="action-title" :aria-busy="busy">
+    <span class="section-number">ACTION / 승인된 업무</span>
     <header><h2 id="action-title">작업 제안·승인·수행</h2>
       <span v-if="action" class="badge">{{ statusLabels[action.status] }}</span></header>
     <p v-if="!action">아직 확정된 작업이 없습니다.</p>
     <template v-else>
       <p class="muted">작업 {{ action.id }}</p>
       <dl><dt>수행 범위</dt><dd>{{ action.scope }}</dd>
-        <dt>담당자</dt><dd>{{ action.assignee_id }}</dd>
+        <dt>담당자</dt><dd>{{ personName(action.assignee_id) }}</dd>
         <dt>기한 (한국 시간)</dt><dd>{{ date(action.due_at) }}</dd>
         <dt>완료 기준</dt><dd><ul><li v-for="criterion in action.completion_criteria" :key="criterion">{{ criterion }}</li></ul></dd>
         <dt>제안 근거</dt><dd><ul><li v-for="id in action.evidence_refs" :key="id">
-          <a :href="`/api/v1/evidence/${encodeURIComponent(id)}`" target="_blank" rel="noopener noreferrer">{{ evidenceOptions.find(e => e.id === id)?.label ?? id }}</a>
+          <a :href="`${evidenceBaseUrl ?? '/api/v1'}/evidence/${encodeURIComponent(id)}`" target="_blank" rel="noopener noreferrer">{{ evidenceOptions.find(e => e.id === id)?.label ?? id }}</a>
         </li></ul></dd></dl>
       <p v-if="incident.review_required" role="status">후속 검토 필요: {{ incident.review_reason }}</p>
       <p>사건 상태: {{ incident.status }}</p>
@@ -143,17 +146,17 @@ function submit(kind: CommandKind, decision?: 'APPROVE' | 'REJECT') {
       <template v-if="canApprove">
         <label for="action-reason">승인·반려 사유</label>
         <textarea id="action-reason" v-model="reason" :disabled="busy || !!pending" required />
-        <div class="buttons"><button :disabled="disabled || !reason.trim()" @click="submit('approval-decisions', 'APPROVE')">작업 승인</button>
+        <div class="buttons"><button class="primary" :disabled="disabled || !reason.trim()" @click="submit('approval-decisions', 'APPROVE')">작업 승인</button>
           <button :disabled="disabled || !reason.trim()" @click="submit('approval-decisions', 'REJECT')">작업 반려</button></div>
       </template>
-      <button v-if="canStart" :disabled="disabled" @click="submit('start')">작업 착수</button>
+      <button v-if="canStart" class="primary" :disabled="disabled" @click="submit('start')">작업 착수</button>
       <template v-if="canComplete">
         <label for="action-result">수행 결과</label>
-        <textarea id="action-result" v-model="resultText" :disabled="busy || !!pending" required />
+        <textarea id="action-result" v-model="resultText" :disabled="busy || !!pending" required maxlength="20000" />
         <fieldset v-if="evidenceOptions.length" :disabled="busy || !!pending"><legend>추가 근거 (선택)</legend>
           <label v-for="item in evidenceOptions" :key="item.id" class="evidence-choice">
             <input v-model="selectedEvidence" type="checkbox" :value="item.id">{{ item.label }}</label></fieldset>
-        <button :disabled="disabled || !resultText.trim()" @click="submit('completion')">작업 결과 제출</button>
+        <button class="primary" :disabled="disabled || !resultText.trim()" @click="submit('completion')">작업 결과 제출</button>
       </template>
       <p v-if="!canApprove && !canStart && !canComplete && !blocked && action.status !== 'COMPLETED' && action.status !== 'REJECTED'">
         현재 책임자 또는 지정 작업 담당자만 해당 단계를 처리할 수 있습니다.</p>
@@ -172,16 +175,3 @@ function submit(kind: CommandKind, decision?: 'APPROVE' | 'REJECT') {
       <button :disabled="busy || refreshRequired" @click="reviewRequired = false">최신 내용을 확인했습니다</button></div>
   </section>
 </template>
-
-<style scoped>
-.action-panel { padding: 1.25rem; border: 1px solid #cbd5e1; border-radius: .75rem; background: #fff; color: #172033; }
-header, .buttons { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
-h2 { font-size: 1.1rem; margin: 0; } .badge { background: #e2e8f0; padding: .25rem .5rem; border-radius: .25rem; }
-dl { display: grid; grid-template-columns: 7rem 1fr; gap: .6rem; } dt { font-weight: 600; } dd { margin: 0; overflow-wrap: anywhere; }
-ul { padding-left: 1.2rem; margin: 0; } p { white-space: pre-wrap; overflow-wrap: anywhere; }
-label { display: block; margin: .75rem 0 .3rem; } textarea { box-sizing: border-box; width: 100%; min-height: 6rem; font: inherit; padding: .65rem; }
-button { font: inherit; padding: .6rem .85rem; margin-top: .65rem; cursor: pointer; } button:disabled { cursor: not-allowed; opacity: .55; }
-.muted { color: #526174; font-size: .85rem; } .record { border-left: 3px solid #64748b; padding-left: .8rem; margin: 1rem 0; }
-.evidence-choice { display: flex; gap: .5rem; } [role="alert"] { color: #a21c25; }
-@media (max-width: 480px) { dl { grid-template-columns: 1fr; } dd { margin-bottom: .5rem; } }
-</style>

@@ -11,6 +11,16 @@ export function prepareCommand(actionId: string, actorId: string, kind: CommandK
   return Object.freeze({ actionId, actorId, kind, key, serializedBody: JSON.stringify(body) })
 }
 
+export function validateActionData(value: unknown, actionId: string): CommandData {
+  const data = value as Partial<CommandData> | undefined;
+  if (data?.action_id !== actionId || !Number.isInteger(data?.incident_version)
+    || !Number.isInteger(data?.action_version) || typeof data?.incident_status !== 'string'
+    || !['PROPOSED', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'REJECTED'].includes(data?.action_status ?? '')) {
+    throw new CommandFailure('저장 응답을 확인하지 못했습니다.', 'INVALID_RESPONSE', true);
+  }
+  return data as CommandData;
+}
+
 export function createActionClient(baseUrl = '/api/v1', transport: typeof fetch = fetch): SendCommand {
   return async command => {
     let response: Response
@@ -32,12 +42,6 @@ export function createActionClient(baseUrl = '/api/v1', transport: typeof fetch 
       throw new CommandFailure(body?.error?.message ?? '요청을 처리하지 못했습니다.', code,
         code === 'COMMAND_IN_PROGRESS' || response.status === 429 || response.status >= 500)
     }
-    const data = body?.data
-    if (data?.action_id !== command.actionId || !Number.isInteger(data?.incident_version)
-      || !Number.isInteger(data?.action_version) || typeof data?.incident_status !== 'string'
-      || !['PROPOSED', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'REJECTED'].includes(data?.action_status)) {
-      throw new CommandFailure('저장 응답을 확인하지 못했습니다.', 'INVALID_RESPONSE', true)
-    }
-    return data as CommandData
+    return validateActionData(body?.data, command.actionId)
   }
 }
