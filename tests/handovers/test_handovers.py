@@ -128,7 +128,12 @@ def test_all_wait_categories_exact_membership_and_no_cross_shift_or_site_leak(
 @pytest.mark.parametrize("case", ["reverse", "same", "nonadjacent", "missing_receiver_assignment", "missing_outgoing_assignment",
     "receiver_disabled", "receiver_wrong_role", "from_wrong_site", "to_wrong_site", "worker", "wrong_supervisor"])
 def test_invalid_shift_pairs_and_callers_leave_no_handover(case, clients, session_factory, demo_ids):
-    body, actor = pair(), "outgoing_supervisor"
+    body = pair()
+    actor = ("incoming_supervisor" if case in {"reverse", "wrong_supervisor"}
+             else "reporter" if case == "worker" else "outgoing_supervisor")
+    # Authenticate valid fixtures first, then exercise revoked/mismatched scope.
+    # Current sessions recheck their shift assignment and site on every request.
+    actor_client = clients(actor)
     with session_factory.begin() as tx:
         if case == "reverse":
             body = {"from_shift_occurrence_id": demo_ids["incoming_shift"], "to_shift_occurrence_id": demo_ids["outgoing_shift"]}
@@ -155,8 +160,11 @@ def test_invalid_shift_pairs_and_callers_leave_no_handover(case, clients, sessio
             actor = "reporter"
         elif case == "wrong_supervisor":
             actor = "incoming_supervisor"
-    response = create(clients(actor), body)
-    assert response.status_code in (403, 404, 422), response.text
+    response = create(actor_client, body)
+    if case in {"missing_outgoing_assignment", "from_wrong_site"}:
+        error(response, 403 if case == "missing_outgoing_assignment" else 401)
+    else:
+        assert response.status_code in (403, 404, 422), response.text
     with session_factory() as tx:
         assert count(tx, Handover) == count(tx, HandoverItem) == count(tx, HandoverRevision) == 0
         assert count(tx, CommandReceipt) == 0
@@ -399,8 +407,8 @@ def test_cross_site_session_and_item_hierarchy_and_detail_projection(clients, se
     with session_factory.begin() as tx:
         tx.get(User, demo_ids["incoming_supervisor"]).site_id = str(uuid4())
     denied = clients("incoming_supervisor").get(f'/api/v1/handovers/{handover["id"]}')
-    error(denied, 404)
-    error(ack(clients("incoming_supervisor"), handover, original), 404)
+    error(denied, 401, "UNAUTHENTICATED")
+    error(ack(clients("incoming_supervisor"), handover, original), 401, "UNAUTHENTICATED")
     assert original["snapshot_token"] not in denied.text
 
 
@@ -568,7 +576,7 @@ def test_completed_receipt_cannot_cross_the_actors_changed_site(clients, session
     with session_factory.begin() as tx:
         tx.get(User, demo_ids["incoming_supervisor"]).site_id = str(uuid4())
     denied = ack(incoming, handover, item, key=key)
-    error(denied, 404)
+    error(denied, 401, "UNAUTHENTICATED")
     assert "Idempotent-Replayed" not in denied.headers
     assert item["snapshot_token"] not in denied.text
     assert "data" not in denied.json()

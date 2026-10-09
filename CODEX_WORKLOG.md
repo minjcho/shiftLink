@@ -67,3 +67,113 @@
 - F1 PR #6의 head ec6c9f1에서 codex/f3-handover-pr를 구성했다. 대상 jgoneit은 아직 문서 기반이므로 F1 선행 의존성을 명시한다.
 - 검증된 F3 제품/시험을 원본 fd10159와 동일하게 가져오고 root문서는 F1 PR기록을 보존하며 F3 기록만 추가했다. F1 goal/시험/migration은 수정하지 않았다.
 - 새 브랜치에서 서버141·웹빌드·실제브라우저3개가 통과했다. 원본 Sealseq98과 새 PR소스의 직접 재검증을 구분한다.
+
+## F0 → F1 기반 변경 — 2026-10-09
+
+- 사용자 요청: “그러면 F0를 F1으로 맞추는 쪽으로 진행을 해서 PR 을 업데이트 혹은 다시 PR 을 만들자”.
+- 기존 F0 `feature/f0-foundation`/PR #8을 보존하고 F1 `ec6c9f1`에서 별도 worktree와 `codex/f0-on-f1`을 생성했다. 공유 파일은 단일 통합 작업으로 수정했다.
+- F1 ORM·트랜잭션·agent·화면 유지, 전체 Compose·maintenance/live worker·세션 교대 migration·타입 생성·상세 slot을 이식했다. 기존 0001을 수정하지 않았다.
+- 실제 PostgreSQL, Compose, HTTP, Chromium(fake 모델)로 검증했다. 서버 104·화면 33·브라우저 1 PASS. 기존 F1 88 PASS baseline과 이전 #8 검증을 구분했다.
+- F1 도구 잠금 리뷰는 원본 실패를 재현하고 수정 후 통과했다. API base URL도 보강했다. 세션 전환은 기존 F1 재진입 차단을 검증했다. 남은 F1 리뷰 3건은 별도로 명시했다.
+- F2/F3/F4 adapter 및 제품 기능·실제 모델·배포·제출은 NOT_RUN. 새 PR은 F1 브랜치 대상이며 병합하지 않는다. 기존 PR 이력과 로컬 비밀값·대화 기록을 보존했다.
+
+
+## PR #6 리뷰 후속 수정 — 2026-10-09
+
+- 사용자가 앞선 다섯 리뷰 분석에 따른 구현과 댓글 작성을 요청했다. 별도 `docs/specs/f1-review-fixes/SPEC.md`에 현재 결함·유지 동작·출처가 있는 결정·9개 수용 조건을 정리했다. 기존 목표 문서·실행 기록은 보존했다.
+- 불확실한 명령은 목록 조회로 초기화하지 않고, 확정 거부만 성공한 최신 조회 뒤 새 명령으로 준비한다. 세션 전환과 버전 충돌의 기존 정책은 유지했다.
+- 도구의 Incident→Job 잠금 및 시작·종료 lease 검사 회귀를 추가했다. 통합 시 같은 문제를 먼저 수정한 F0의 lock_incident_graph 구현을 유지했다. 단일 handover 요약은 site/참여자를 필터한 뒤 created_at DESC,id DESC로 결정했다.
+- DB 원문을 유지하면서 필수 모델 입력과 정정 연결을 우선 선택하고 중복 본문을 제거했다. AGENT_MAX_INPUT_BYTES와 각 호출 전 전체 입력 검사를 추가하고 초과 시 CONTEXT_LIMIT로 업무 후보 확정을 차단했다. 모델 지침 버전은 f1-investigation/2다.
+- 동일 출처의 비어 있지 않은 ASCII API prefix를 브라우저와 개발 프록시에 연결했다. 기본값·비기본값·끝 슬래시를 검증하고 URL 정규화로 의미가 달라지는 값은 거부한다.
+- 수정 전 회귀 실패를 확인한 뒤 F0 통합 전 서버108·화면62·빌드·실제 브라우저 기본2/비기본2를 통과했다. 테스트가 작성된 코드·실제 DB/브라우저·fake 모델의 범위를 구분했다. 상세는 TEST_RESULTS를 따른다.
+- PR #6에 수정 커밋과 각 리뷰의 수정·검증 댓글을 반영한다. PR 병합·실제 모델·F3 전체 통합·배포는 이 작업 범위에 포함하지 않는다.
+
+
+### 원격 F0 통합 보존과 재검증
+
+- 최초 리뷰 수정 commit 59c4ce8의 push는 원격 F0 PR #9 병합 때문에 거부됐다. 백업 ref를 남기고 19b589c 위로 통합했다. 양쪽 문서 기록과 기존 F0 상태를 모두 보존했다.
+- 도구 잠금 구현은 F0 공통 graph 잠금 그대로 유지하고 이번 실제 교착·lease 회귀를 연결했다. API 생성자 인자와 세션·worker·migration·공용 타입·상세 슬롯도 유지했다. 새 입력 예산을 Compose API/worker 환경에 전달했다.
+- 8ef1dba 통합 후 서버124·타입계약·화면65 PASS. 공개 슬롯의 Promise<void> 호환을 34b154a에서 보완해 타입 빌드 PASS, 기본/비기본 경로 브라우저 각각2 PASS까지 확인했다. 미실행 범위와 소스별 검사 구분은 TEST_RESULTS에 남겼다.
+
+## PR #6 후속 리뷰 분류와 수정 — 2026-10-09
+
+- 요청: “review댓글 달리지 않은 아랫부분들 중에 정합성 이슈나 이런거는 issue만 추가해주고 바로 수정이 필요한 부분들은 판단해서 수정 진행해줘 @Spec”. 기존 답변이 있는 다섯 리뷰 이후의 네 항목을 확인했다.
+- `c46d490` 위에서 입력·목록·검색 세 건의 수정 전 실패를 재현하고 고쳤다. MessageBody 혼합 참조를 저장 전 거부하고, 목록은 읽은 페이지 범위를 최신 cursor로 전부 갱신하며, 문서 검색에서 합성 설비 코드를 제거했다.
+- 별도 후속 Spec에 변경 전 사실·수정/유지 범위·결정 출처·AC-1~6을 정리했다. 도메인/API/Agent/UI 설명을 맞췄다. 공유 enum·DTO·migration, 기존 Spec과 Seal 기록은 보존했다.
+- F2 어댑터의 추가 Action 저장은 시험용 adapter·실제 PostgreSQL에서 재현했으나 기본 실행 미연결이므로 이슈 #11로만 등록했다. 통합 전 전체 집합 검사·rollback·실제 adapter 시험 조건을 남겼다.
+- 직접 검증은 서버133·화면70·타입계약·빌드와 실제 브라우저 기본3/비기본3 PASS다. 모델 fake·실제 HTTP/DB·미실행 제품 통합을 구분하며, 상세는 TEST_RESULTS를 따른다.
+- 읽기 전용 코드 검토의 권장에 따라 브라우저 시험의 완료 대기를 강화하고 Spec 기준 시점을 명시했다. 리뷰 스레드는 자동 해결하지 않는다. PR #6 기존 소스 브랜치에 반영하며 병합·배포는 수행하지 않는다.
+
+## F2 서버 실연결 — 2026-10-09
+
+요청: F4 전에 F2 연결 계약을 수정하고 F1 PR 업데이트를 작업 중 확인한다.
+
+- 별도 worktree `/private/tmp/shiftlink-f2-on-f1`, 브랜치 `codex/f2-on-f1`에서 구현. 원래 feature/f0-foundation과 다른 worktree는 보존.
+- 기준 F1 c46d490·F2 3670cd2. 작업 중 PR #6 HEAD를 반복 조회했고 확인 시점에 새 커밋 없음. 지속 백그라운드 감시 기능은 설치하지 않음.
+- F2 Action-only staging·ORM adapter·실제 세션/명령 receipt·준비 검사 변환, API/worker 생산 조립, 승인 revision UNIQUE 후속 migration, finalizer 추가 Action 차단. 기존 DB schema 중복 생성 없음.
+- 실제 실행: pytest 233 PASS, 기존 Web 65 PASS·build·생성 계약·diff 검사 PASS. uvicorn HTTP와 프로세스 재시작 포함. 상세는 TEST_RESULTS의 F2/F1 절.
+- 사람 검토: 대기. F3/F4/live/배포·제출은 수행하지 않음.
+- 대화 기록: 계획 단계 미저장 사실을 명시하고 확인 가능한 로컬 세션의 사용자·표시된 Codex 원문만 docs/history에 추가. 비밀·내부 추론·도구 원문은 제외.
+
+### 작업 중 F1 변경 반영
+
+2026-10-09 14:31 KST 이후 조회에서 F1 새 HEAD `7072e63`을 발견했다. F2 구현 checkpoint `6a723fa`를 보존하고 새 F1을 merge했다(`c027c54`). 코드 충돌은 없었고 CODEX_WORKLOG/PROGRESS/TEST_RESULTS의 내용 충돌은 양쪽 이력을 보존하고 현재 요약을 결합했다. 메시지 형태·검색 관련성·목록 페이지 보존을 포함한 새 시험을 재실행한다. 이슈 #11의 추가 Action 차단은 이 브랜치에서 구현했으며 GitHub 이슈 상태나 리뷰 스레드는 변경하지 않았다.
+
+최종 재검증: F1 7072e63을 포함해 서버 243 PASS(50.87초, 0 SKIP), 기존 Web 70 PASS·타입/빌드·생성 계약 PASS. 실제 F2 adapter의 generation 1 재사용 시험을 추가했다. 최초 233/65 기록은 이전 기반에서의 관측으로 보존한다. F4 구현 착수 전 서버 연결 게이트를 충족했다.
+
+## F2-001 작업 승인·수행과 F4 준비 검사
+
+| 항목 | 실제 수행 |
+|---|---|
+| 요청 | F2 구현 논의 후 사용자가 `Implement the plan.` 지시 |
+| 합의 | F0는 재곤 담당 유지. F2와 함께 F4 종료 조건 검사 함수만 구현 |
+| 기준 | minjcho, base 9de625e, 작업 후 dirty=true. 아직 구현 커밋·푸시 없음 |
+| 코드 | 후보 확정·승인/반려·착수/결과 서비스, 주입형 FastAPI router/DTO, F2 테이블, Vue 패널/client, 종료 조건 검사 |
+| 경계 | F0 공통 실행 앱·로그인·DB adapter·공유 상세 셸·migration head 중복 구현 안 함. F4 verification/case는 후속 |
+| 검증 | 서버 72 PASS, PostgreSQL 13 SKIP, Web 17 PASS, Vue 타입/DDL 컴파일 PASS. 실제 앱·DB·F1 live 통합 NOT_RUN |
+| 수정 | 폴링 시 입력/재시도 초기화 결함 수정, TypeScript/vue-tsc 호환 버전 고정, UUID 요청 키 타입 보완 |
+| 사람 검토 | 계획의 담당/범위는 사용자 선택으로 확정. 구현 코드의 사람 검토·채택·실제 UI 확인은 아직 NOT_REVIEWED |
+| 인계 | docs/16_F2_INTEGRATION.md의 F0 transaction/session/화면·F1 finalizer·F3 revision hook 연결 후 실제 통합 시험 |
+
+실제 실행 명령과 미실행 제한은 TEST_RESULTS 4절에 기록한다. 기능 코드를 작성했다는 이유로 F2 전체를 DONE으로 바꾸지 않았다.
+
+## F2-002 독립 데모 실행 (이후 F2-003에서 제거)
+
+- 실제 요청: `F2 실행 ㄱ`, 이어 사용자가 `브라우저에서 독립 데모 확인 (권장)` 선택.
+- 변경: 시험 경로에 loopback 메모리 preview 서버·Vue 진입 화면과 실행 명령을 추가했다. 실제 F2 router/service를 재사용하며 F0 인증·DB adapter는 만들지 않았다.
+- 실행: Python API 127.0.0.1:8772, Vite 127.0.0.1:5173. 승인·착수·결과 제출을 실제 HTTP로 확인하고 초기 제안 상태로 되돌렸다.
+- 검증: 서버 90 PASS(실제 PostgreSQL 13 포함), Web 17 PASS, preview 포함 타입 PASS. 실제 브라우저 조작은 도구 권한으로 NOT_RUN.
+- DB 시험용 컨테이너는 종료했고 데모 서버 두 개는 사용자 확인을 위해 실행 상태로 유지했다. 데이터는 메모리 fixture이며 프로세스 재시작 시 사라진다.
+- 사람의 화면 확인은 아직 기록되지 않았다. 미커밋·미푸시 상태이며 상세 검증 결과는 TEST_RESULTS 5절이다.
+
+
+## F2-003 임시 데모 제거와 PR 준비
+
+- 요청: 임시 화면 롤백, F2 PR 준비, 상세한 단위로 커밋 분리.
+- 제거: 시험용 메모리 API 서버, Vue preview 진입 화면·설정·실행 스크립트, preview 전용 시험 5개, uvicorn 직접 의존성. 데모 서버 두 개 종료.
+- 유지: F2 읽기/명령 계약, 승인 무결성, 종료 준비 검사, 후보 확정·승인·착수·완료 서비스, 주입형 HTTP API, PostgreSQL 테이블 제약, Vue 작업 패널과 독립 시험.
+- 검증: 제거 후 Python 85 PASS(실제 PostgreSQL 13 포함), Web 17 PASS, Vue 타입 PASS. F0 DB adapter·세션·F1/F3·브라우저 E2E는 NOT_RUN.
+- 커밋 분리: Python 시험 환경 → F2 계약·테스트 저장소 → F4 종료 준비 검사 → F2 업무 서비스·시험 → API·시험 → DB 제약·시험 → Web client·시험 환경 → 작업 패널·시험 → 인계·검증 문서.
+- PR 범위: F0 연결 전 검토용 Draft. F2 전체 완료나 운영 배포로 표시하지 않는다. 임시 데모는 이전에 커밋되지 않아 삭제 파일이 PR diff에 나타나지 않으며 실행 이력은 보존한다.
+
+## 기존 F2 PR 업데이트 — 2026-10-09
+
+사용자 요청 “F2 PR 업데이트?”에 따라 기존 #5를 갱신한다. 원격 minjcho 3670cd2를 merge해 기존 패널과 커밋 이력을 보존했다. 최신 F1 기반의 서버 연결 계약을 유지하고 문서 충돌은 현재 요약과 양쪽 작업 기록을 보존해 해결했다. 공통 Web70·F2 패널17·타입/빌드 PASS, 서버 소스는 ff1fb4e와 동일하다. non-force push로 minjcho를 갱신하고 F1 구현이 중복 diff에 나타나지 않도록 대상 브랜치를 codex/f1-intake-investigation-pr로 변경한다. Draft는 유지하며 병합하지 않는다.
+
+## 2026-10-09 F2 리뷰 최소 보완
+
+사용자 요청: 작은 리뷰 두 건 수정 후 나머지는 시간 제약을 명시해 이슈로 추적하고 PR 병합.
+
+- F2 production route의 Idempotency-Key 선언·명시 전달, 완료 result/evidence_refs 상한과 API 계약 갱신.
+- 누락 헤더·상한 초과 거부 및 쓰기 없음·경계 수용 회귀 추가. 전체 서버249 PASS, 생성 계약/공백 검사 PASS.
+- 기존 Worker Lock #10 및 F1 후속 #13/#14/#15 재사용, 패널/전주기 후속 #16 등록. 실제 모델·전체 브라우저 검증은 NOT_RUN.
+
+## 2026-10-09 F3 main 통합과 리뷰 처리
+
+사용자 요청: 병합된 #5 기준으로 F3 수정 방향을 별도 명세로 정리하고 치명적 리뷰는 즉시 수정, 나머지는 이슈·댓글로 추적.
+
+- 기존 F3 목표를 보존하고 `docs/specs/f3-main-integration-review/SPEC.md`를 작성했다. 공유 기반은 main c726425를 사용하며 source branch 이력을 재작성하지 않고 통합했다.
+- API/worker의 공통 production_ports에 세 기능을 연결했다. main의 Header·입력 상한·세션·worker singleton·공유 타입·상세 슬롯을 보존했다.
+- P1 승인 경계는 Approval 집합과 DB 재조회 값을 비교해 보완했다. 현재 main에서 해결된 네 리뷰는 보존하고 Evidence 동시 발급을 추가로 검증했다.
+- 직접 검증: 서버315, 공통Web70, 실제F3브라우저3, 타입·빌드·생성계약 PASS. 상세 결과·실행 범위는 TEST_RESULTS.
+- 비치명적 리뷰는 #17/#18/#19로 분리했다. F2 화면은 기존 #16을 유지한다. 별도 검토에서 추가 critical/high 소스 결함은 발견하지 못했다.

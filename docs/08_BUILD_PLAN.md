@@ -1,6 +1,6 @@
 # 08. 기능별 개발·통합 계획
 
-> v0.3 구현 문서 · 2026-10-09. 모든 구현 단계 `NOT_STARTED`, 런타임 검증 `NOT_RUN`.
+> v0.3 구현 문서 · 2026-10-09. 아래는 계획이며 최신 실행 상태는 PROGRESS·TEST_RESULTS를 따른다.
 > 재곤/민재 이름은 초기 배분 제안이며 당사자의 수락이나 구현 완료를 뜻하지 않는다. 일정은 조정 가능한 내부 목표다.
 
 ## 1. 개발 원칙
@@ -43,6 +43,8 @@ F3와 F4는 공유 계약 확정 후 각자 구현할 수 있다. 최종 통합�
 
 ## 4. 편집 경계와 공유 파일 통합
 
+2026-10-09 사용자 결정: F1 PR #6의 ORM·명령·worker·화면을 기준으로 F0를 맞춘다. 실제 공통 client/types는 `apps/web/src/lib/`, 상세 shell은 `features/intake/IncidentDetail.vue`다. F0 보강은 이 파일의 actions/resolution/history slot을 사용한다. migration은 0001_f1_foundation → 0002_session_shift를 이어가며 다른 초기 migration을 합치지 않는다. 아래 예정 경로보다 [현재 연결 계약](17_F0_FOUNDATION.md)을 우선한다.
+
 다음 경로는 신규 구현을 위한 예정 구조다. 구현 시작 전 실제 저장소와 대조한다.
 
 | 기능 | 독립 편집 영역 제안 | 공유 경계를 넘을 때 |
@@ -61,7 +63,7 @@ F3와 F4는 공유 계약 확정 후 각자 구현할 수 있다. 최종 통합�
 
 아래 표는 책임·불변 조건을 고정한다. 최종 Python/TypeScript 이름과 JSON 필드는 [API](04_API_CONTRACT.md)에 한 번 정의한다. 이 표의 이름 때문에 별도 HTTP endpoint를 추가하지 않는다.
 
-F2의 내부 인터페이스는 `finalize_action_proposal(tx, *, incident_id, run_id, input_version, draft_id, trigger_event_id) -> {action_id, created, action_version}`이다. F1 finalizer가 F0 공통 트랜잭션·버전·lease 검사를 사용해 호출한다. F2는 같은 트랜잭션에서 필요한 이벤트 정보를 제공하고 직접 commit하지 않는다.
+F2의 내부 인터페이스는 `finalize_action_proposal(tx, *, incident_id, run_id, input_version, draft_id, trigger_event_id) -> {action_id, created, action_version}`이다. F1 finalizer가 F0 공통 트랜잭션·버전·lease 검사를 사용해 호출한다. F2는 같은 트랜잭션에서 Action만 저장하고 직접 commit하지 않는다. Incident 상태·이벤트·버전은 F1 finalizer가 반환된 Action ID로 한 번만 반영한다.
 
 | 제공 → 사용 | 인계할 내용 | 필수 보장 |
 |---|---|---|

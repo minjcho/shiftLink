@@ -50,7 +50,7 @@ def require_version(incident, expected_version):
 
 def execute_command(session_factory, principal, key, method, route, body, handler):
     """Serialize receipt identity without leaving a reservation outside the business tx."""
-    if not key or len(key) > 200:
+    if not key or not key.strip() or len(key) > 200:
         raise DomainError(422, "VALIDATION_ERROR", "유효한 Idempotency-Key가 필요합니다.")
     canonical = json.dumps({"method": method.upper(), "route": route, "body": body},
                            sort_keys=True, separators=(",", ":"), ensure_ascii=False)

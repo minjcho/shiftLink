@@ -108,7 +108,7 @@ PostgreSQL·SQLAlchemy·Alembic을 사용할 계획이다. ID는 서버 발급 U
 | messages | id, site_id, incident_id, author_id, kind, text, reply_to_request_id, action_id, correction_of, observed_at, received_at |
 | requests | id, incident_id, target_user_id, purpose_code, question, is_required, status, evidence_refs, response_message_id, version, created_at, answered_at |
 
-Message.kind는 `REPORT / NOTE / REPLY / ACTION_RESULT / CORRECTION`. 원문 text는 append-only다. correction_of가 있으면 같은 Incident의 기존 Message인지 검사한다. Request의 목적 코드는 `VERIFY_SCOPE / VERIFY_RESULT` 서버 허용 목록이며 OPEN 중복 키는 `(incident_id, target_user_id, purpose_code)`다. 질문 답변은 같은 Incident의 OPEN Request와 지정 대상자만 허용한다. Request.version은 생성 1, 답변 시 +1이다.
+Message.kind는 `REPORT / NOTE / REPLY / ACTION_RESULT / CORRECTION`. 원문 text는 append-only다. correction_of가 있으면 같은 Incident의 기존 Message인지 검사한다. `reply_to_request_id`와 `correction_of`는 동시에 지정할 수 없다. 답변과 정정은 별도 입력이며 동시 지정 요청은 저장 전에 거부한다. Request의 목적 코드는 `VERIFY_SCOPE / VERIFY_RESULT` 서버 허용 목록이며 OPEN 중복 키는 `(incident_id, target_user_id, purpose_code)`다. 질문 답변은 같은 Incident의 OPEN Request와 지정 대상자만 허용한다. Request.version은 생성 1, 답변 시 +1이다.
 
 analysis에는 `run_id, base_version, decision, facts, hypotheses, missing_information, source_refs, reason`을 저장한다. `is_stale = base_version != incident.version`은 보수적으로 계산한다. 동일 run이 만든 질문·Action도 버전을 증가시키므로 분석 기준 버전과 실제 반영 후 버전을 함께 진단에 표시한다.
 
@@ -218,3 +218,11 @@ ACK는 지정 수신 supervisor·최신 revision/token·현재 Incident 버전�
 저장은 timezone-aware UTC, 화면·교대 해석은 Asia/Seoul이다. 모르는 observed_at은 null이다. 데모 자료는 합성 데이터이며 실제 설비 제어·현장 안전 검증을 증명하지 않는다.
 
 이 계약의 실제 검증은 [시험 계획](07_TEST_PLAN.md)의 T1–T12에서 수행한다. 특히 T9 일반 메시지 버전, T10 반려 후 차단, T11 만료 worker, T12 인계 범위·유일키를 확인한다. 현재 모든 런타임 검증은 NOT_RUN이다.
+
+## F1 기반 세션 구현 보완 — 2026-10-09
+
+공유 물리 모델은 `app.core.models.Base`와 F1의 `0001_f1_foundation`을 기준으로 통합한다. 후속 `0002_session_shift`는 SessionToken에 교대 FK를 추가한다. 기존 token의 교대는 추측하지 않고 NULL을 유지해 재로그인을 요구한다. 세션은 선택한 배정에 고정되며 매 요청 사용자 활성·동일 site·배정 존재를 재검사한다. 업무 상태·버전·권한 계약 D01~D07은 유지한다. 기존 독립 F0 #8 schema는 이 chain에 섞지 않는다. [실행·인계](17_F0_FOUNDATION.md) 참고.
+
+## F2 ORM 연결 보완 — 2026-10-09
+
+F1 finalizer는 부모 상태·proposal 이벤트·버전·인계 갱신과 최종 lease 검사를 소유한다. F2 후보 확정 adapter는 동일 Session에 Action만 저장하며 부모나 이벤트를 별도로 변경하지 않는다. 기본 데모 기한은 서버 생성 시각 +1시간이다. 준비 검사는 F1 port에서 `{ready, unmet_requirements}`로 반환하며 F2 완료 HTTP 응답의 `verification_ready`와 구분한다. 현재 ORM 자료와 이전 UUID 기반 독립 시험 테이블은 중복 등록하지 않는다.

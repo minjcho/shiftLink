@@ -50,6 +50,8 @@ class SessionToken(Identity, Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Legacy tokens stay nullable and require re-login; never guess their shift.
+    shift_occurrence_id: Mapped[str | None] = mapped_column(ForeignKey("shifts.id", name="fk_session_shift"))
 
 
 class ShiftAssignment(Base):
@@ -213,6 +215,7 @@ class Approval(Identity, Base):
     approved_payload_snapshot: Mapped[dict] = mapped_column(JSON)
     actor_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    __table_args__ = (UniqueConstraint("action_id", "action_revision", name="uq_approvals_action_revision"),)
 
 
 class Verification(Identity, Base):

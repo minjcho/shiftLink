@@ -20,6 +20,7 @@ class Settings:
     agent_max_model_calls: int = 7
     agent_max_tool_calls: int = 6
     agent_max_output_tokens: int = 2000
+    agent_max_input_bytes: int = 262144
     search_max_chunks: int = 5
     search_max_chunk_chars: int = 2000
     worker_poll_interval_seconds: int = 2
@@ -67,6 +68,8 @@ class Settings:
                 raise ValueError(f"{field.name.upper()} must be positive")
         if self.job_lease_seconds <= self.agent_run_deadline_seconds:
             raise ValueError("JOB_LEASE_SECONDS must exceed AGENT_RUN_DEADLINE_SECONDS")
+        if not 32768 <= self.agent_max_input_bytes <= 1048576:
+            raise ValueError("AGENT_MAX_INPUT_BYTES must be between 32768 and 1048576")
         if self.app_env == "production" and (not self.session_cookie_secure or self.demo_account_switch_enabled):
             raise ValueError("Production requires secure cookies and disabled demo switching")
         if worker and self.agent_mode == "live" and (not self.openai_api_key or not self.openai_agent_model):

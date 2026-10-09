@@ -2,28 +2,32 @@
 from __future__ import annotations
 
 import importlib.metadata
+import argparse
 import hashlib
 import json
 import os
 from pathlib import Path
 import subprocess
 import time
+import signal
+import threading
 from uuid import uuid4
 
 from app.core.config import Settings
 from app.core.db import create_session_factory
 from app.core.errors import DomainError
-from app.core.ports import FeaturePorts
+from app.core.ports import FeaturePorts, production_ports
+from app.core.worker_lock import single_worker
 from .finalizer import DecisionRejected, finalize
 from .jobs import LostLease, claim_job, finish_failure, prepare_run, recover_exhausted
-from .runner import OpenAIResponsesTransport, RunLimits, run_agent
+from .runner import ContextLimit, OpenAIResponsesTransport, RunLimits, run_agent
 from .tools import ToolExecutor
 
 
 def runtime_metadata(settings: Settings, adapter) -> dict:
     public = {name: getattr(settings, name) for name in (
         "agent_run_deadline_seconds", "agent_max_model_calls", "agent_max_tool_calls",
-        "agent_max_output_tokens", "search_max_chunks", "search_max_chunk_chars",
+        "agent_max_output_tokens", "agent_max_input_bytes", "search_max_chunks", "search_max_chunk_chars",
         "worker_poll_interval_seconds", "job_lease_seconds", "job_max_attempts", "dataset_id",
         "app_timezone",
     )}
@@ -69,7 +73,9 @@ def run_once(session_factory, settings: Settings, ports: FeaturePorts, model_ada
         return None
     execution = None
     try:
-        context = prepare_run(session_factory, identity, ports)
+        context = prepare_run(session_factory, identity, ports,
+                              max_input_bytes=settings.agent_max_input_bytes,
+                              max_output_tokens=settings.agent_max_output_tokens)
         identity = context.identity
         executor = ToolExecutor(session_factory, context, max_chunks=settings.search_max_chunks,
                                 max_chunk_chars=settings.search_max_chunk_chars,
@@ -77,7 +83,8 @@ def run_once(session_factory, settings: Settings, ports: FeaturePorts, model_ada
         execution = run_agent(
             context=context.payload, transport=model_adapter, execute_tool=executor,
             limits=RunLimits(settings.agent_run_deadline_seconds, settings.agent_max_model_calls,
-                             settings.agent_max_tool_calls, settings.agent_max_output_tokens), started_at=start)
+                             settings.agent_max_tool_calls, settings.agent_max_output_tokens,
+                             settings.agent_max_input_bytes), started_at=start)
         if execution.error is not None:
             applied = finish_failure(session_factory, identity, execution.error, execution=execution)
             return {"status": "FAILED" if applied else "LEASE_LOST", "job_id": identity.job_id,
@@ -85,6 +92,9 @@ def run_once(session_factory, settings: Settings, ports: FeaturePorts, model_ada
         return finalize(session_factory, identity, execution, ports)
     except LostLease:
         return {"status": "LEASE_LOST", "job_id": identity.job_id, "run_id": identity.run_id}
+    except ContextLimit:
+        error = {"code": "CONTEXT_LIMIT", "message": "Required incident context exceeds the configured byte budget",
+                 "retryable": False}
     except (DecisionRejected, DomainError) as exc:
         error = {"code": exc.code, "message": "The server rejected the investigation result or required feature boundary",
                  "retryable": bool(getattr(exc, "retryable", False))}
@@ -98,15 +108,33 @@ def run_once(session_factory, settings: Settings, ports: FeaturePorts, model_ada
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=("maintenance", "live"), default="live")
+    args = parser.parse_args()
     settings = Settings.from_env()
-    settings.validate(worker=True)
+    settings.validate(worker=args.mode == "live")
+    if args.mode == "live" and settings.agent_mode != "live":
+        raise ValueError("The runtime worker requires live mode; fake/replay need an explicit test adapter")
     factory = create_session_factory(settings.database_url)
-    from app.features.handovers.service import refresh_handover_items
-    ports = FeaturePorts(handover_refresher=refresh_handover_items)
-    while True:
-        result = run_once(factory, settings, ports)
-        if result is None:
-            time.sleep(settings.worker_poll_interval_seconds)
+    ports = production_ports()
+    stopped = threading.Event()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, lambda *_: stopped.set())
+    engine = factory.kw["bind"]
+    try:
+        with single_worker(engine) as check_lock:
+            print(f"ShiftLink worker ready: {args.mode}", flush=True)
+            while not stopped.is_set():
+                check_lock()
+                if args.mode == "maintenance":
+                    recover_exhausted(factory, max_attempts=settings.job_max_attempts)
+                    result = None
+                else:
+                    result = run_once(factory, settings, ports)
+                if result is None:
+                    stopped.wait(settings.worker_poll_interval_seconds)
+    finally:
+        engine.dispose()
 
 
 if __name__ == "__main__":

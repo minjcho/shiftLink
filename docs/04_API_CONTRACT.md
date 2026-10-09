@@ -92,9 +92,13 @@ F2 서비스는 caller-owned 최종 트랜잭션에 참여한다. 현재 run·In
 
 세션은 HttpOnly·SameSite=Lax 쿠키를 사용하고 HTTPS 환경에서는 Secure를 켠다. `SESSION_COOKIE_SECURE=false`는 로컬 HTTP 개발에 한한다. session secret은 `.env.example`에서 빈 값으로 두고 실제 로컬 환경에서 주입한다. 공개 데모는 제한된 접근으로 운영하며 이 전환 방식이 실제 운영 인증을 대신한다고 주장하지 않는다.
 
+세션은 로그인 시 서버가 선택한 같은 사업장의 교대 배정에 고정된다. 매 요청 enabled·site·배정을 재검사한다. 배정이 삭제되면 403, 유효 세션이 없거나 교대/site가 맞지 않으면 401이다. 교대가 없는 새 로그인은 422 SHIFT_ASSIGNMENT_MISSING이며 이전 세션을 보존한다. `0002_session_shift` 이전 token은 재로그인이 필요하다. POST `/demo/session`도 아래 `/me`와 같은 data 필드를 반환한다.
+
 GET `/me`의 data는 `user_id, display_name, role, site_id, shift_occurrence_id, duties`다. meta.build는 `app_commit_sha, working_tree_dirty, agent_mode, search_mode`만 제공하고 불명은 null로 남긴다. 전체 환경 값은 반환하지 않는다.
 
 GET `/equipment`는 id·code·label·aliases, GET `/shifts`는 허용 교대 발생 ID·시작/종료·supervisor와 허용 인계 쌍을 반환한다. 상세·목록에서 계산한 `allowed_commands`는 UI 표시 보조이며 서버 명령 검사를 대체하지 않는다.
+
+Incident 상세의 단일 `handover` 요약은 같은 사업장이고 현재 사용자가 생성자 또는 수신자인 인계만 대상으로 한다. 여러 인계가 같은 사건을 포함하면 `created_at DESC, id DESC`의 첫 인계를 선택한다. 최신 인계의 비참여자에게는 그 인계의 존재나 내용 대신 자신이 읽을 수 있는 과거 인계의 요약만 반환한다. snapshot·token은 이 요약에 포함하지 않는다.
 
 ## 4. 제보 접수와 메시지·답변
 
@@ -137,7 +141,7 @@ GET `/equipment`는 id·code·label·aliases, GET `/shifts`는 허용 교대 발
 }
 ```
 
-reply_to_request_id=null이면 추가 메시지다. 값이 있으면 같은 사건의 OPEN Request·지정 응답자·부모 버전을 확인하고 Message 저장과 Request ANSWERED를 한 트랜잭션으로 수행한다. response data는 `message_id, request_id|null, request_version|null, incident_id, incident_status, incident_version, job_id|null`다. 사건은 한 번만 +1이다.
+`reply_to_request_id`와 `correction_of`를 모두 non-null로 보내면 `422 VALIDATION_ERROR`다. Message·Request·Incident 버전·이벤트·Job·receipt를 생성하거나 바꾸지 않는다. reply_to_request_id=null이면 추가 메시지다. 값이 있으면 같은 사건의 OPEN Request·지정 응답자·부모 버전을 확인하고 Message 저장과 Request ANSWERED를 한 트랜잭션으로 수행한다. response data는 `message_id, request_id|null, request_version|null, incident_id, incident_status, incident_version, job_id|null`다. 사건은 한 번만 +1이다.
 
 새 일반 메시지도 상태명이 같아도 반드시 버전이 증가한다. PENDING_VERIFICATION에서는 INVESTIGATING으로 옮기고 새 조사 Job을 만든다. review_required 상태에서는 원문 기록은 허용하되 신규 작업·검증 준비가 차단됨을 표시한다. RESOLVED에 늦게 온 입력은 거부 입력 이벤트와 receipt로 보존하고 `409 INCIDENT_RESOLVED`와 새 제보 안내를 반환한다.
 
@@ -204,7 +208,7 @@ PROPOSED 상태와 현재 owner supervisor를 확인한다. APPROVE는 승인 sn
 }
 ```
 
-IN_PROGRESS·assignee·승인 내용과 현재 상태를 확인한다. result는 필수이며 서버가 작성자·시각이 있는 Message와 completion_report Evidence를 만든다. evidence_refs는 추가 기존 근거이며 없어도 결과 원문 근거는 생성된다. Action COMPLETED 이후 종료 준비 서비스를 호출한다.
+IN_PROGRESS·assignee·승인 내용과 현재 상태를 확인한다. result는 공백이 아닌 필수 문자열(최대 20,000자)이며 evidence_refs는 최대 100개다. 초과 입력은 422 VALIDATION_ERROR로 거부한다. 서버가 작성자·시각이 있는 Message와 completion_report Evidence를 만든다. evidence_refs는 추가 기존 근거이며 없어도 결과 원문 근거는 생성된다. Action COMPLETED 이후 종료 준비 서비스를 호출한다.
 
 응답은 `action_id, action_status=COMPLETED, action_version, result_message_id, completion_evidence_id, incident_status, incident_version, verification_ready, unmet_requirements[]`다. 조건 충족 시 PENDING_VERIFICATION, 아니면 아직 해결 전임을 표시한다. 정상 완료의 검증 준비에 추가 모델 호출은 필요하지 않다. 결과 제출은 실제 현장의 작업 수행을 독립적으로 검증한 증거가 아니다.
 
@@ -267,3 +271,7 @@ GET `/evidence/{id}`는 source_type·source_id·source_version·위치·excerpt�
 초기 폴링은 `VITE_POLL_INTERVAL_MS=2000`이다. 숨겨진 탭에서 중지하고 현재 상세·최근 Job을 읽는다. 입력 성공 후 응답의 최신 version을 반영한다. 202 다음의 FAILED는 접수 실패로 되돌리지 않는다. 조회 실패·조사 중·질문 대기·검증 대기를 구분한다.
 
 F0가 공유 DTO·enum·OpenAPI 통합을 조정하고 각 기능 담당자가 요청·응답·화면·시험을 함께 완성한다. 변경 시 [도메인](03_DOMAIN_MODEL.md)·[Agent](05_AGENT_DESIGN.md)·[UI](06_UI_SPEC.md)·[시험](07_TEST_PLAN.md)을 동기화한다. 구현 이후 실제 OpenAPI와 이 문서의 endpoint·상태·버전·오류 계약을 대조한다. 현재 OpenAPI 생성·HTTP 호출·권한·동시성 시험은 모두 NOT_RUN이다.
+
+## F2 실연결 보완 — 2026-10-09
+
+승인·착수·결과 API는 F1 세션·Origin·execute_command를 사용하며 성공 응답 DTO는 기존 계약을 유지한다. 같은 완료 receipt는 권한을 위한 인증·사업장 범위 확인 후 최신 업무 상태보다 먼저 재사용한다. 신규 명령은 잠금 안에서 현재 owner/assignee와 두 버전을 검사한다. 내부 readiness port의 키 `ready`는 완료 HTTP의 `verification_ready`로 임의 변경하지 않는다. 전체 상세의 준비/최종 검증 필드와 F2 패널 연결은 후속 작업이다.

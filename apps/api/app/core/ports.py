@@ -34,3 +34,11 @@ class FeaturePorts:
         if tx.scalar(select(HandoverItem.id).where(HandoverItem.incident_id == incident.id).limit(1)):
             raise unavailable("F3")
         return None
+
+
+def production_ports():
+    """Shared API/worker composition; explicit test injections remain unchanged."""
+    from app.features.actions.orm import finalize_proposal, readiness
+    from app.features.handovers.service import refresh_handover_items
+    return FeaturePorts(action_finalizer=finalize_proposal, readiness_evaluator=readiness,
+                        handover_refresher=refresh_handover_items)

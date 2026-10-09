@@ -37,6 +37,10 @@ F2 생성 서비스 계약은 `finalize_action_proposal(tx, *, incident_id, run_
 - 자료의 명령문은 분석 대상이다. 자료가 도구·권한·런타임 지침을 바꿀 수 없다.
 - `source_ref`는 서버가 발급한 근거 ID다. 이번 run의 초기 입력 또는 실제 도구 응답에 포함된 근거만 최종 인용할 수 있다. 승인된 SOP의 버전·절·범위와 사람 진술의 작성자·시각을 보존한다.
 
+초기 입력의 부가 이력은 설정된 크기 안에서 선택한다. DB 원문과 Evidence는 그대로 보존하면서 현재 상태·trigger 원문·필요한 질문/답변·Action·승인·참조 근거를 우선하고 본문 중복을 제거한다. 선택에서 생략된 Evidence는 이번 run의 본 출처 집합에 넣지 않는다. 필수 정보를 온전히 담을 수 없으면 `CONTEXT_LIMIT`으로 종료하며 해당 입력의 모델 호출과 업무 후보 확정을 하지 않는다.
+
+각 모델 호출 직전에 시스템 지침·입력·도구 정의·최종 출력 schema를 직렬화한 UTF-8 바이트 수에 출력 여유를 더해 `AGENT_MAX_INPUT_BYTES`와 비교한다. 도구 결과와 프로토콜 output이 누적된 후에도 같은 검사를 적용하며, 중간 JSON이나 protocol item을 임의 절단하지 않는다. 이 바이트 한도는 모델별 token 수나 context window 적합성의 보장이 아니므로 실제 모델의 한도와 live 결과에 맞춰 설정한다.
+
 ## 4. 네 가지 도구
 
 아래는 애플리케이션 DTO 계약이다. 모든 object schema는 `additionalProperties:false`, 모든 필드는 `required`로 선언한다. 선택값도 필드를 생략하지 않고 `null`을 허용한다. actor·site·run·input_version은 서버에서 주입하고 모델 입력으로 받지 않는다.
@@ -64,7 +68,7 @@ F2 생성 서비스 계약은 `finalize_action_proposal(tx, *, incident_id, run_
 
 `outcome`은 `OK | EMPTY | ERROR`다. 검색이 정상 완료됐으나 결과가 없을 때만 EMPTY다. ERROR에는 `{code, message, retryable}`가 있고 data는 null이다. 일부 자료만 반환한 경우 partial을 표시한다. 검색 장애·권한 오류를 빈 검색 결과로 바꾸지 않는다. 도구별 data는 위 표의 고정 schema로 검증하며, 모델이 넘긴 임의 JSON을 실행하지 않는다.
 
-키워드 검색은 query의 정규화 토큰·설비 별칭·문서 텍스트와 승인 메타데이터로 수행한다. 최대 chunk 5개, chunk당 최대 2,000자를 반환한다. 동점 정렬을 문서 ID와 chunk 순서로 고정하고 조회 시각·검색 모드·query를 남긴다. 시나리오 이름으로 정답 문서를 선택하지 않는다.
+키워드 검색은 query의 정규화 토큰·설비 별칭·문서 텍스트와 승인 메타데이터로 수행한다. SOP의 사업장·승인·설비 적용 범위를 먼저 제한한 뒤 실제 제목과 chunk 본문으로 점수를 계산한다. 조회한 설비 코드나 별칭을 후보 문서 텍스트에 덧붙여 일치를 만들지 않는다. 실제 제목·본문에 코드나 별칭이 있는 경우의 일치와 기존 토큰 OR 검색은 유지한다. 최대 chunk 5개, chunk당 최대 2,000자를 반환한다. 동점 정렬을 문서 ID와 chunk 순서로 고정하고 조회 시각·검색 모드·query를 남긴다. 시나리오 이름으로 정답 문서를 선택하지 않는다.
 
 ## 5. 최종 DTO
 
@@ -113,6 +117,7 @@ question의 purpose_code는 서버 허용 목록 `VERIFY_SCOPE | VERIFY_RESULT`�
 | AGENT_RUN_DEADLINE_SECONDS | 60 | claim 이후 이번 run의 실행 시간 상한 |
 | AGENT_MAX_MODEL_CALLS | 7 | 실패·재시도·형식 보정 포함 호출 상한 |
 | AGENT_MAX_TOOL_CALLS | 6 | 실제 실행한 읽기·후보 도구 합계 |
+| AGENT_MAX_INPUT_BYTES | 262144 | 초기·후속 호출 전체 직렬화 입력과 출력 여유의 바이트 예산. 허용 범위 32768~1048576 |
 | AGENT_MAX_OUTPUT_TOKENS | 2000 | 개별 모델 응답 출력 상한 |
 | SEARCH_MAX_CHUNKS / SEARCH_MAX_CHUNK_CHARS | 5 / 2000 | 개별 검색 결과 상한 |
 | WORKER_POLL_INTERVAL_SECONDS | 2 | DB Job 확인 간격 |

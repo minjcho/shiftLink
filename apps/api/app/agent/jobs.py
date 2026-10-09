@@ -8,7 +8,7 @@ from sqlalchemy import and_, func, or_, select
 
 from app.core.models import AgentRun, Event, HandoverItem, Incident, Job, Request, Action
 from .context import RunIdentity, build_context
-from .runner import PROMPT_VERSION, TOOL_SCHEMA_VERSION
+from .runner import DEFAULT_MAX_INPUT_BYTES, PROMPT_VERSION, TOOL_SCHEMA_VERSION
 
 
 class LostLease(Exception):
@@ -82,13 +82,14 @@ def lock_incident_graph(tx, identity: RunIdentity):
     return incident
 
 
-def prepare_run(session_factory, identity: RunIdentity, ports, *, now=None):
+def prepare_run(session_factory, identity: RunIdentity, ports, *, now=None,
+                max_input_bytes=DEFAULT_MAX_INPUT_BYTES, max_output_tokens=2000):
     from app.core.transactions import bump_incident, new_event
 
     with session_factory.begin() as tx:
         incident = lock_incident_graph(tx, identity)
         fence(tx, identity, now=now)
-        if incident.status == "OPEN":
+        if incident.status == "OPEN" and not incident.review_required:
             incident.status = "INVESTIGATING"
             event = new_event(tx, incident, "INVESTIGATION_STARTED", related_ids={"run_id": identity.run_id})
             bump_incident(tx, incident, event, ports)
@@ -99,8 +100,8 @@ def prepare_run(session_factory, identity: RunIdentity, ports, *, now=None):
         job, run = fence(tx, identity, now=now)
         identity = replace(identity, input_version=incident.version)
         run.input_version = incident.version
-        context = build_context(tx, identity, incident)
-        context.payload["trigger_event_id"] = job.trigger_event_id
+        context = build_context(tx, identity, incident, trigger_event_id=job.trigger_event_id,
+                                max_input_bytes=max_input_bytes, max_output_tokens=max_output_tokens)
         run.metadata_json = {**run.metadata_json, "observed_source_ids": sorted(context.source_ids)}
         fence(tx, identity, now=now)
         return context

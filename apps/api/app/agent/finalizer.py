@@ -131,6 +131,10 @@ def finalize(session_factory, identity: RunIdentity, execution, ports: FeaturePo
                 UUID(result["action_id"])
             except ValueError as exc:
                 raise DecisionRejected("The Action boundary returned an invalid ID") from exc
+            current_ids = set(tx.scalars(select(Action.id).where(Action.incident_id == incident.id)))
+            expected_ids = set(previous) | {result["action_id"]}
+            if current_ids != expected_ids:
+                raise DecisionRejected("The Action boundary changed more than the returned Action")
             action = tx.get(Action, result["action_id"])
             if (action is None or action.incident_id != incident.id or action.action_generation != 1
                     or action.version != result["action_version"]):
@@ -141,9 +145,16 @@ def finalize(session_factory, identity: RunIdentity, execution, ports: FeaturePo
                 current = tx.get(Action, action_id)
                 if current is None or any(getattr(current, key) != value for key, value in before.items()):
                     raise DecisionRejected("The Action boundary changed an existing Action")
+            # Proposal creation/reuse cannot create or alter a person's approval.
+            # Refresh persisted values as an adapter may issue SQL behind the ORM.
+            current_approvals = {approval.id: approval for approval in tx.scalars(
+                select(Approval).where(Approval.action_id.in_(current_ids))
+                .execution_options(populate_existing=True))}
+            if set(current_approvals) != set(previous_approvals):
+                raise DecisionRejected("The Action boundary changed approval identities")
             for approval_id, before in previous_approvals.items():
-                current = tx.get(Approval, approval_id)
-                if current is None or any(getattr(current, key) != value for key, value in before.items()):
+                current = current_approvals[approval_id]
+                if any(getattr(current, key) != value for key, value in before.items()):
                     raise DecisionRejected("The Action boundary changed an existing approval")
             if result["created"] == (action.id in previous):
                 raise DecisionRejected("The Action boundary misreported creation versus reuse")

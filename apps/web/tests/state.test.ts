@@ -24,14 +24,14 @@ describe('AC30 actual response state rendering', () => {
     const wrapper = await render(detail({ waiting_for_input: false })); expect(wrapper.text()).toContain('필수 질문 · 담당자 답변 대기');
   });
   it('separates intake from failed AI and only owner can see retry', async () => {
-    const data = detail({ allowed_commands: ['retry_job'] }); const failed = { ...job, status: 'FAILED', error_code: 'TOOL_ERROR', retryable: true };
+    const data = detail({ allowed_commands: ['retry_job'] }); const failed = { ...job, status: 'FAILED' as const, error_code: 'TOOL_ERROR', retryable: true };
     const wrapper = await render(data, reporter, failed); expect(wrapper.text()).toContain('AI 조사 실패 · 제보는 저장됨'); expect(wrapper.findAll('button').some(b => b.text() === 'AI 조사 재시도')).toBe(false);
     await wrapper.setProps({ me: supervisor }); expect(wrapper.findAll('button').some(b => b.text() === 'AI 조사 재시도')).toBe(true);
   });
   it('retains review_required and BLOCKED independently of a succeeded run', async () => {
     const wrapper = await render(detail({ review_required: true, review_reason: '승인 반려 사유', analysis: { ...detail().analysis!, decision: 'BLOCKED' } })); expect(wrapper.text()).toContain('후속 검토 필요'); expect(wrapper.text()).toContain('승인 반려 사유'); expect(wrapper.text()).toContain('조사 보류'); expect(wrapper.text()).toContain('AI 실행 완료');
   });
-  it.each(['OPEN','ACTION_REQUIRED','IN_PROGRESS','PENDING_VERIFICATION','RESOLVED'])('shows authoritative %s separately from AI success', async status => {
+  it.each(['OPEN','ACTION_REQUIRED','IN_PROGRESS','PENDING_VERIFICATION','RESOLVED'] as const)('shows authoritative %s separately from AI success', async status => {
     const wrapper = await render(detail({ status })); expect(wrapper.find('.state-stack').text()).toContain('사건 ·'); expect(wrapper.find('.state-stack').text()).toContain('AI 실행 완료');
   });
   it('does not render expanded diagnostics for non-owner even if response is malformed', async () => {

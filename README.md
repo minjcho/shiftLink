@@ -1,8 +1,19 @@
 # ShiftLink 개발 구현 문서
 
-v0.3 구현 계약 · 2026-10-09 · F1·F3 구현 및 독립 검증 진행
+v0.3 구현 계약 · 2026-10-09 · F1/F2/F3 서버 통합·전체 화면과 사람 검증 후속
 
 ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 찾고, 사람의 승인·작업 수행·교대 인수·최종 해결 확인까지 같은 사건으로 연결하는 서비스다. F1 실행 앱과 개발 명세를 포함한다. F1의 독립 구현·검증 상태는 [Seal 실행 기록](docs/specs/f1-intake-investigation/PROGRESS.md), 설치·실행·외부 기능 경계는 [F1 실행 안내](docs/F1_IMPLEMENTATION.md)를 따른다. F3 구현과 실행 방법은 [F3 실행 안내](docs/F3_IMPLEMENTATION.md), 18개 완료 조건의 판정은 [F3 Seal 기록](docs/specs/f3-handover/PROGRESS.md)을 따른다. 전체 기능 통합·실제 모델·배포 상태는 별도로 기록한다.
+
+## 로컬 실행
+
+```sh
+python3 scripts/setup_env.py
+docker compose up --build -d
+```
+
+Web `http://127.0.0.1:5173`, API `http://127.0.0.1:8000`. 기존 `.env`는 보존한다. F1의 ORM·migration·화면을 공통 기준으로 사용하며 독립 F0 PR #8은 이 통합에 직접 병합하지 않는다. [F0 실행·연결 안내](docs/17_F0_FOUNDATION.md)를 따른다.
+
+기본 `WORKER_MODE=maintenance`는 복구만 수행한다. 제보는 저장되고 조사는 대기한다. 실제 모델 key/model을 설정하고 `WORKER_MODE=live`로 worker를 재생성해야 AI가 조사한다. F2 서버는 승인·착수·결과와 공통 검증 준비까지 연결했다. [F2 연결 안내](docs/16_F2_INTEGRATION.md)를 참고한다. F3 인수는 같은 기본 구성에 연결했다. [이번 통합·리뷰 명세](docs/specs/f3-main-integration-review/SPEC.md)를 따른다. F2 작업 패널은 [#16](https://github.com/minjcho/shiftLink/issues/16), F3의 비치명적 후속은 [#17](https://github.com/minjcho/shiftLink/issues/17)·[#18](https://github.com/minjcho/shiftLink/issues/18)·[#19](https://github.com/minjcho/shiftLink/issues/19)로 추적한다. F4 사람 검증·실제 모델·전체 화면 전주기는 후속이다.
 
 ## 먼저 읽을 문서
 
@@ -46,6 +57,8 @@ ShiftLink는 모호한 점검 기록에서 확인할 내용과 남은 작업을 
 | [13 심사 근거](docs/13_JUDGING_EVIDENCE_MAP.md) | 주장·기능·시험·실제 제출 근거 대응 |
 | [14 도입과 가치](docs/14_PILOT_AND_VALUE.md) | 파일럿·현장 가설·비용과 시간 측정 |
 | [15 제출 절차](docs/15_SUBMISSION_RUNBOOK.md) | 버전 동결·접근 확인·실제 접수 확인 |
+| [17 F0 실행·연결](docs/17_F0_FOUNDATION.md) | F1 기반 Compose·세션·worker·migration·기능 연결 |
+| [16 F2 구현 인계](docs/16_F2_INTEGRATION.md) | 구현 범위·F0/F1 연결 계약·독립 시험·남은 통합 |
 | [아키텍처](docs/ARCHITECTURE.md) / [Mermaid](docs/ARCHITECTURE.mmd) | 구성요소·실행 경계·기능 간 연결 |
 | [환경 설정](docs/ENVIRONMENT.md) | 환경변수·비밀값·실행 전 점검 |
 | [진행](PROGRESS.md) / [시험 결과](TEST_RESULTS.md) | 현재 상태·실제 실행 결과 |

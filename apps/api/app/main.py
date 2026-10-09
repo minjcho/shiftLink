@@ -1,21 +1,25 @@
 from contextlib import asynccontextmanager
 import os
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
-from fastapi import FastAPI, Query, Request as HttpRequest
+from fastapi import FastAPI, Header, Query, Request as HttpRequest
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.auth import COOKIE_NAME, check_origin, principal_data, principal_from_request, rotate_demo_session
 from app.core.config import Settings
+from app.core.contracts import IncidentStatus
 from app.core.db import create_session_factory
 from app.core.errors import DomainError, not_found
 from app.core.models import Equipment, Evidence, Job, Shift
-from app.core.ports import FeaturePorts
+from app.core.ports import production_ports
+from app.features.actions.commands import ApprovalCommand, CompletionCommand, StartCommand
+from app.features.actions.responses import ApprovalResult, CompletionResult, StartResult, SuccessEnvelope
+from app.features.actions import orm as actions
 from app.core.transactions import execute_command
 from app.features.intake.schemas import DemoSessionBody, MessageBody, ReportBody, RetryBody
 from app.features.intake import service
@@ -26,9 +30,12 @@ def with_meta(request, body):
         "dataset_id": request.app.state.settings.dataset_id, "demo_mode": request.app.state.settings.app_env != "production"}}
 
 
-def command(request, body, handler):
+def command(request, body, handler, scope=None, idempotency_key=None):
     check_origin(request)
     principal = principal_from_request(request)
+    if scope is not None:
+        with request.app.state.session_factory() as tx:
+            scope(tx, principal)
     def wrapped(tx):
         status, payload = handler(tx, principal)
         return status, with_meta(request, payload)
@@ -40,7 +47,7 @@ def command(request, body, handler):
             segments.append(segment)
     normalized_route = "/".join(segments)
     status, result, replayed = execute_command(request.app.state.session_factory, principal,
-        request.headers.get("idempotency-key"), request.method, normalized_route,
+        idempotency_key if idempotency_key is not None else request.headers.get("idempotency-key"), request.method, normalized_route,
         body.model_dump(mode="json"), wrapped)
     return JSONResponse(result, status_code=status, headers={"Idempotent-Replayed": "true"} if replayed else {})
 
@@ -53,11 +60,10 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
         settings.validate()
         yield
 
-    app = FastAPI(title="ShiftLink F1", lifespan=lifespan)
+    app = FastAPI(title="ShiftLink", lifespan=lifespan)
     app.state.settings = settings
     app.state.session_factory = session_factory or create_session_factory(database_url or settings.database_url)
-    from app.features.handovers.service import refresh_handover_items
-    app.state.ports = ports if ports is not None else FeaturePorts(handover_refresher=refresh_handover_items)
+    app.state.ports = ports if ports is not None else production_ports()
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.allowed_origins), allow_credentials=True,
                        allow_methods=["GET", "POST"], allow_headers=["Content-Type", "Idempotency-Key"],
                        expose_headers=["Idempotent-Replayed"])
@@ -87,6 +93,12 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
         response.set_cookie(COOKIE_NAME, raw, httponly=True, secure=settings.session_cookie_secure,
                             samesite="lax", max_age=43200, path="/")
         return response
+
+    @app.get("/healthz", include_in_schema=False)
+    def health():
+        with app.state.session_factory() as tx:
+            tx.execute(text("SELECT 1"))
+        return {"status": "ok"}
 
     @app.get("/api/v1/me")
     def me(request: HttpRequest):
@@ -122,7 +134,7 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
         return command(request, body, lambda tx, actor: service.add_message(tx, actor, str(incident_id), body, app.state.ports))
 
     @app.get("/api/v1/incidents")
-    def incidents(request: HttpRequest, status: Literal["OPEN", "INVESTIGATING", "ACTION_REQUIRED", "IN_PROGRESS", "PENDING_VERIFICATION", "RESOLVED"] | None = None,
+    def incidents(request: HttpRequest, status: IncidentStatus | None = None,
                   equipment_id: UUID | None = None, scope: Literal["all", "mine"] = "all",
                   cursor: str | None = Query(default=None, max_length=2048), limit: int = Query(default=20, ge=1, le=100)):
         principal = principal_from_request(request)
@@ -159,6 +171,27 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
                 raise not_found()
             service.read_incident(tx, principal, row.incident_id)
             return with_meta(request, {"data": service.as_dict(row)})
+
+    def action_command(action_id, request, body, idempotency_key):
+        return command(request, body,
+            lambda tx, actor: actions.execute(tx, actor, action_id, body, app.state.ports),
+            scope=lambda tx, actor: actions.assert_scope(tx, actor, action_id),
+            idempotency_key=idempotency_key)
+
+    @app.post("/api/v1/actions/{action_id}/approval-decisions", response_model=SuccessEnvelope[ApprovalResult])
+    def approval(action_id: UUID, request: HttpRequest, body: ApprovalCommand,
+                 idempotency_key: Annotated[str, Header(alias="Idempotency-Key")]):
+        return action_command(action_id, request, body, idempotency_key)
+
+    @app.post("/api/v1/actions/{action_id}/start", response_model=SuccessEnvelope[StartResult])
+    def start_action(action_id: UUID, request: HttpRequest, body: StartCommand,
+                 idempotency_key: Annotated[str, Header(alias="Idempotency-Key")]):
+        return action_command(action_id, request, body, idempotency_key)
+
+    @app.post("/api/v1/actions/{action_id}/completion", response_model=SuccessEnvelope[CompletionResult])
+    def complete_action(action_id: UUID, request: HttpRequest, body: CompletionCommand,
+                 idempotency_key: Annotated[str, Header(alias="Idempotency-Key")]):
+        return action_command(action_id, request, body, idempotency_key)
 
     from app.features.handovers.router import register as register_handovers
     register_handovers(app, command=command, with_meta=with_meta)

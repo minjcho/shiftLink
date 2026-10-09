@@ -16,3 +16,34 @@
 ## 실행 결함 기록
 
 현재 실행 중 확인한 앱 결함·수정 결과는 없다. 이후 [개선 양식](templates/IMPROVEMENT_RECORD.md)에 실제 실패 입력·원인·수정·동일 조건 재시험을 기록한다. 문서의 예상 실패를 관찰한 실패로 바꾸어 발표하지 않는다.
+
+## 2026-10-09 — 중복 기반 통합과 도구 잠금 순서
+
+- 문제: F0 #8과 F1 #6이 각기 초기 schema·세션·worker·화면 진입점을 만들었다. 함께 적용하면 테이블과 실행 기반이 중복된다.
+- 결정: 사용자 요청에 따라 동작하는 F1을 기준으로 유지하고 F0 보강을 별도 PR로 이식한다. F1 0001 보존, session 교대만 0002 추가. #8의 DB는 자동 변환하거나 stamp하지 않는다.
+- 재현: 사람 명령이 Incident를 잠근 상태에서 F1 원본 검색 도구가 Job을 먼저 잡으면 사람의 Job NOWAIT 잠금이 실패했다.
+- 수정: 도구도 `lock_incident_graph` 후 `fence`를 실행한다. 이미 진행 중인 업무·검토 보류 상태는 최초 조사 준비에서 유지한다.
+- 결과: 원본 회귀 FAIL → 수정 회귀 PASS, PostgreSQL 전체 104 PASS. 화면 33 PASS, 실제 브라우저 fake 1 PASS. 실제 모델·제품 전체 통합은 NOT_RUN.
+
+## F1/F2 책임 충돌 수정 — 2026-10-09
+
+F2의 기존 stage_proposal 계약은 Action/event·Incident 상태를 저장하도록 했지만 F1은 호출 중 부모 상태 변경을 거부했다. F2는 Action만 저장하고 F1이 상태·이벤트·버전·최종 lease를 소유하도록 통일했다. readiness의 `verification_ready`와 F1 port의 `ready`도 경계에서 명시적으로 변환한다. 실제 finalizer→ORM→HTTP 검증과 lease 만료 rollback, 두 경합 완료, 초과 Action 거부를 포함한 신규 24개 및 전체 서버 233개가 통과했다.
+
+## 기존 F2 독립 구현의 개선 기록
+
+문서 작성 시점에는 실행 결함이 없었다. 이후 실제 독립 시험에서 확인한 실패와 수정은 아래에 누적한다. 문서의 예상 실패를 관찰한 실패로 바꾸어 발표하지 않는다.
+
+### F2-UI-001 폴링 갱신 시 입력·재시도 정보 소실
+
+- 재현: 승인 사유 입력 후 409 또는 응답 유실을 발생시키고, 같은 ID의 새 incident/action 객체를 패널에 전달했다.
+- 실제 실패: 2026-10-09 12:13 KST Vitest에서 충돌 재검토와 동일 키 재시도 시험 2개 실패. 재검토/재시도 버튼과 보존 입력이 초기화됐다.
+- 원인: `watch(() => [id, actionId, actorId])`가 새 배열을 반환하므로 객체 갱신만으로도 세션/사건 변경 처리기가 실행됐다.
+- 수정: `watch([() => id, () => actionId, () => actorId])`로 각 식별자 값을 비교한다. 버전 감시도 독립 getter 배열로 바꿨다.
+- 재검증: 동일 실패 조건 포함 Web 17개 PASS. 세션 전환 시에는 이전 요청을 폐기하는 시험도 유지했다. happy-dom 시험이며 실제 앱 E2E는 미실행이다.
+
+### F2-TOOL-001 TypeScript 검사 환경 호환
+
+- 실제 실패: TypeScript 7.0.2와 vue-tsc 3.3.12 조합에서 `typescript/lib/tsc` export 오류로 타입 검사 시작 실패.
+- 수정: TypeScript를 5.9.3으로 고정하고 lockfile 갱신. 설치 당시 Node 25 engine 경고가 있어 시험은 지원되는 Node 24.21.0으로 실행했다.
+- 후속 타입 오류: `crypto.randomUUID()` 기본값에서 추론된 UUID template literal이 시험용 string key를 거부했다. 명시적인 `key: string`을 선언했다.
+- 재검증: Vue 타입 검사 PASS. 제품 기능의 성능 개선이나 운영 검증으로 계산하지 않는다.

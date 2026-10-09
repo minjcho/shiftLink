@@ -2,7 +2,13 @@
 
 작성 기준: 2026-10-09, `jgoneit`에서 분리한 검증 checkout. 목표는 [F3 SPEC](specs/f3-handover/SPEC.md)의 18개 AC다. 구현과 관측한 검증 범위를 정리한다. 최종 Seal 상태·완료 여부는 [F3 PROGRESS](specs/f3-handover/PROGRESS.md)와 실행 기록에서 확인한다.
 
-## 현재 확인 범위
+## 현재 main 통합 기준
+
+F2 #5가 병합된 main `c726425`를 F3에 통합했다. 이번 목표는 [F3 main 통합·리뷰 명세](specs/f3-main-integration-review/SPEC.md)이며, 아래 최초 독립 검증과 이전 완료 기록은 당시 근거로 보존한다. 현재 직접 검증은 서버 315 PASS, Web 70 PASS·빌드·생성 계약 PASS, 실제 F3 브라우저 AC-1/16/17 PASS다. 상세 명령과 범위는 TEST_RESULTS의 F3 main 통합 절을 따른다.
+
+기본 API와 worker CLI는 같은 `production_ports()`에서 F2 확정·공통 준비 검사·F3 갱신을 제공한다. 실제 API/DB에서 인수 이후의 새 owner 승인과 기존 assignee 수행·결과·인계 갱신을 확인했다. F2 화면은 #16, 조회 Evidence·동시 접수 추가 표시·이전 교대 구간은 #17/#18/#19로 남아 있다. 아래 일반 흐름의 보장은 이 세 알려진 경계 결함이 해결됐다는 뜻이 아니다.
+
+## 최초 독립 구현의 확인 범위
 
 | 구분 | 상태 | 확인한 범위 |
 | --- | --- | --- |
@@ -31,7 +37,7 @@
 
 F3는 공유 `core.models`의 Handover/Item/Revision/Ack와 Incident·Action·Request를 사용한다. 독립 모델이나 migration head를 만들지 않았다. 공통 기반과 F1 코드는 F3 자체의 신규 구현으로 계산하지 않는다.
 
-`register(app, command=command, with_meta=with_meta)`는 `main.create_app`에서 호출한다. F0의 Origin·서버 세션·오류·CommandReceipt를 그대로 이용하며, `create_app`에 ports를 생략하면 기본 F3 hook을 구성한다. 명시적으로 주입된 `FeaturePorts`는 hook 부재까지 그대로 보존하고 router 등록에서 변경하지 않는다. 따라서 호출자가 제공한 경계와 연결 실패 의미를 기본 F3 구현으로 덮어쓰지 않는다. worker CLI도 같은 hook을 `FeaturePorts`에 연결한다.
+`register(app, command=command, with_meta=with_meta)`는 `main.create_app`에서 호출한다. F0의 Origin·서버 세션·오류·CommandReceipt를 그대로 이용하며, `create_app`에 ports를 생략하면 F2 확정·공통 준비 검사·F3 hook을 함께 구성한다. 명시적으로 주입된 `FeaturePorts`는 hook 부재까지 그대로 보존하고 router 등록에서 변경하지 않는다. 따라서 호출자가 제공한 경계와 연결 실패 의미를 기본 F3 구현으로 덮어쓰지 않는다. worker CLI도 같은 `production_ports()` 구성을 사용한다.
 
 ## HTTP와 상태 의미
 
@@ -103,6 +109,6 @@ ha check docs/specs/f3-handover EX-1
 
 최종 상태와 `ha done` 기록 여부는 [PROGRESS](specs/f3-handover/PROGRESS.md)에서 확인한다. 이 문서의 개별 PASS로 완료 판정을 대신하지 않는다. 실행자 작성 시험의 assurance는 `local`이며 live 모델 호출·전체 T8·배포·제출과 구분한다.
 
-## F3 PR 제출 소스
+## F3 PR 최초 제출 소스
 
-이 브랜치는 F1 PR #6의 ec6c9f1 위에 F3 변경을 추가했고 대상은 jgoneit이다. 원본 fd10159와 앱·시험·의존성 내용은 동일하며 제출 소스에서 서버141개·웹빌드·실제 브라우저3개를 직접 재검증했다. F3의 원본 Seal18/18·완료seq98은31052bc의 기록으로 보존하며 새 PR commit의 완료로 바꾸지 않는다. F1 선행 병합이 필요하고, 원본 로컬 jgoneit과 다른 작업 이력은 보존했다.
+최초 PR은 F1 PR #6의 ec6c9f1 위에 F3 변경을 추가했고 대상은 jgoneit이었다. 원본 fd10159와 앱·시험·의존성 내용은 동일하며 제출 소스에서 서버141개·웹빌드·실제 브라우저3개를 직접 재검증했다. F3의 원본 Seal18/18·완료seq98은31052bc의 기록으로 보존하며 새 PR commit의 완료로 바꾸지 않는다. F1 선행 병합이 필요하고, 원본 로컬 jgoneit과 다른 작업 이력은 보존했다.

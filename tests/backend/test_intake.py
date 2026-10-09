@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import func, select
 
 from app.core.models import (Action, AgentRun, CommandReceipt, Equipment, Event, Evidence, Handover,
-    HandoverItem, HandoverRevision, Incident, Job, Message, Request, ResolutionCase, Shift, User, utcnow)
+    HandoverItem, HandoverRevision, Incident, Job, Message, Request, ResolutionCase, Shift, ShiftAssignment, User, utcnow)
 
 
 def post_report(client, ids, headers, *, text="  CV-03 소음과 진동 제보 원문  ", key=None):
@@ -71,7 +71,13 @@ def test_other_site_cannot_read_or_write_existing_resources(client,login,demo_id
     login()
     data = post_report(client,demo_ids,auth_headers).json()["data"]
     with session_factory.begin() as tx:
-        tx.get(User,demo_ids["maintainer"]).site_id = str(uuid4())
+        foreign_site, foreign_shift = str(uuid4()), str(uuid4())
+        tx.get(User,demo_ids["maintainer"]).site_id = foreign_site
+        tx.add(Shift(id=foreign_shift, site_id=foreign_site, label="foreign",
+                     starts_at=utcnow(), ends_at=utcnow()+timedelta(hours=4),
+                     supervisor_id=demo_ids["maintainer"], active=True))
+        tx.flush()
+        tx.add(ShiftAssignment(shift_occurrence_id=foreign_shift, user_id=demo_ids["maintainer"], duty="MAINTENANCE"))
     login("maintainer")
     for path in (f"/api/v1/incidents/{data['incident_id']}",f"/api/v1/jobs/{data['job_id']}"):
         response = client.get(path)

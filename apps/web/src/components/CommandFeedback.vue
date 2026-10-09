@@ -12,7 +12,7 @@ defineEmits<{ retry: []; review: [] }>();
     <p v-else>입력을 보존했습니다. 최신 내용을 조회하고 검토한 뒤 새 명령을 제출해 주세요.</p>
     <div class="button-row">
       <button v-if="command.canRetry" type="button" :disabled="command.busy" @click="$emit('retry')">같은 요청 결과 확인</button>
-      <button type="button" class="secondary" :disabled="command.busy" @click="$emit('review')">최신 내용 조회 · 새 요청 준비</button>
+      <button v-if="command.canReview" type="button" class="secondary" :disabled="command.busy" @click="$emit('review')">최신 내용 조회 · 새 요청 준비</button>
     </div>
   </div>
 </template>

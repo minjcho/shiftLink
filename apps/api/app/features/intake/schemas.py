@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class StrictBody(BaseModel):
@@ -40,6 +40,12 @@ class MessageBody(StrictBody):
     correction_of: UUID | None = None
     meaningful_text = field_validator("text")(ReportBody.meaningful_text.__func__)
     aware_timestamp = field_validator("observed_at")(ReportBody.aware_timestamp.__func__)
+
+    @model_validator(mode="after")
+    def distinct_message_intent(self):
+        if self.reply_to_request_id is not None and self.correction_of is not None:
+            raise ValueError("질문 답변과 원문 정정은 별도 메시지로 입력해 주세요.")
+        return self
 
 
 class RetryBody(StrictBody):

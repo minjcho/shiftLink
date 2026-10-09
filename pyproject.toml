@@ -21,7 +21,7 @@ test = ["pytest>=8,<10", "pytest-timeout>=2.3,<3"]
 where = ["apps/api"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests/backend"]
+testpaths = ["tests/backend", "apps/api/tests/actions"]
 pythonpath = ["apps/api"]
 addopts = "--strict-markers"
 markers = [
