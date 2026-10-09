@@ -185,6 +185,28 @@ def test_finalizer_boundary_and_lease_rollback(client, login, session_factory, d
         assert tx.scalar(select(func.count()).select_from(db.Action)) == 0
         assert tx.get(db.Incident, incident_id).version == 2
         assert tx.get(db.Job, context.identity.job_id).status == 'RUNNING'
+        assert tx.get(db.Incident, incident_id).analysis is None
+        assert tx.scalar(select(func.count()).select_from(db.Event).where(
+            db.Event.type == 'ACTION_PROPOSAL_FINALIZED')) == 0
+
+
+def test_real_adapter_reuses_existing_generation_in_caller_transaction(client, login, session_factory, demo_ids, ports):
+    calls = []
+    def twice(tx, **kwargs):
+        first = finalize_proposal(tx, **kwargs)
+        incident = tx.get(db.Incident, kwargs['incident_id'])
+        before = (incident.status, incident.version)
+        second = finalize_proposal(tx, **kwargs)
+        assert second == first | {'created': False}
+        assert (incident.status, incident.version) == before
+        calls.append(second)
+        return first
+    ports.action_finalizer = twice
+    incident_id, action_id = proposed(client, login, session_factory, demo_ids, ports)
+    assert calls[0]['action_id'] == action_id
+    with session_factory() as tx:
+        assert tx.scalar(select(func.count()).select_from(db.Action)) == 1
+        assert tx.scalar(select(func.count()).select_from(db.Approval)) == 0
 
 
 def test_two_completion_commands_create_one_result(client, login, session_factory, demo_ids, ports, settings):
