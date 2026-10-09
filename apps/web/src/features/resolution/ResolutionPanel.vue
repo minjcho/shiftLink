@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { api, Command, errorMessage, SessionChanged } from '../../lib/api';
+import { Command, errorMessage, SessionChanged } from '../../lib/api';
 import type { IncidentDetail, Me } from '../../lib/types';
 import { person, time } from '../../lib/presentation';
 import CommandFeedback from '../../components/CommandFeedback.vue';
 import type { Resolution, VerificationResult } from './types';
-const props = defineProps<{ detail: IncidentDetail & { resolution?: Resolution }; session: Me; refresh: () => Promise<void> }>();
+import { verificationClient } from './client';
+const props = defineProps<{ detail: IncidentDetail & { resolution?: Resolution; approvals?: { id: string; decision: string; actor_id: string; created_at: string; reason: string; approved_payload_snapshot: { scope?: string; completion_criteria?: string[] } }[] }; session: Me; refresh: () => Promise<void> }>();
 const notes = ref('');
 const refs = ref<string[]>([]);
 const reviewedVersion = ref(props.detail.version);
@@ -55,9 +56,9 @@ async function submit(decision?: 'RESOLVE' | 'RETURN') {
   const current = generation;
   try {
     const result = decision
-      ? await command.value.send<VerificationResult>(api, `/incidents/${encodeURIComponent(props.detail.id)}/verification`,
+      ? await command.value.send<VerificationResult>(verificationClient, `/incidents/${encodeURIComponent(props.detail.id)}/verification`,
           { decision, notes: notes.value, evidence_refs: [...refs.value], expected_version: reviewedVersion.value })
-      : await command.value.send<VerificationResult>(api);
+      : await command.value.send<VerificationResult>(verificationClient);
     if (!result || current !== generation) return;
     savedNotice.value = result.case_id ? '사람의 해결 확인과 해결 이력을 저장했습니다.' : '반려 사유를 저장했습니다. 완료 결과는 보존되며 후속 검토가 필요합니다.';
     notes.value = ''; refs.value = []; needsRefresh.value = true;
@@ -76,6 +77,14 @@ async function submit(decision?: 'RESOLVE' | 'RETURN') {
       <p v-if="!resolution" class="notice">검증 준비 조건을 확인하지 못했습니다.</p>
       <p v-else-if="resolution.ready" class="notice success">필수 업무 조건 충족 · 현재 책임자의 최종 확인이 필요합니다.</p>
       <ul v-else><li v-for="missing in resolution.unmet_requirements" :key="missing">{{ labels[missing] ?? missing }}</li></ul>
+      <h3>작업 승인 기록</h3>
+      <p v-if="!detail.approvals?.length" class="muted">저장된 승인 기록이 없습니다.</p>
+      <article v-for="approval in detail.approvals" :key="approval.id" class="separated">
+        <strong>{{ approval.decision === 'APPROVE' ? '승인' : '반려' }} · {{ person(approval.actor_id) }}</strong>
+        <p class="preserve-lines">{{ approval.approved_payload_snapshot.scope }}</p>
+        <ul><li v-for="criterion in approval.approved_payload_snapshot.completion_criteria" :key="criterion">{{ criterion }}</li></ul>
+        <p class="preserve-lines">{{ approval.reason }}</p><small>{{ time(approval.created_at) }}</small>
+      </article>
       <h3>완료 보고</h3>
       <p v-if="!detail.messages.some(m => m.kind === 'ACTION_RESULT')" class="muted">저장된 완료 결과가 없습니다.</p>
       <blockquote v-for="message in detail.messages.filter(m => m.kind === 'ACTION_RESULT')" :key="message.id">

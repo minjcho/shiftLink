@@ -119,7 +119,7 @@ def verify(tx, principal, incident_id, body, ports):
         actions = list(tx.scalars(select(Action).where(Action.incident_id == incident.id).order_by(Action.id)))
         refs = list(dict.fromkeys([a.completion_evidence_id for a in actions if a.completion_evidence_id]
                                  + verification.evidence_refs))
-        snapshot = {"schema_version": 1, "incident": as_dict(incident),
+        snapshot = {"schema_version": 1, "status": "RESOLVED", "incident": as_dict(incident),
             "reviewer": person_data(tx, principal.user_id), "verification": as_dict(verification),
             "actions": [as_dict(x) for x in actions],
             "approvals": [as_dict(x) for x in tx.scalars(select(Approval)

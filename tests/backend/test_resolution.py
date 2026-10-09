@@ -254,3 +254,52 @@ def test_missing_port_and_security(client, login, pending, ports):
     client.cookies.clear()
     assert post(client, f'/incidents/{incident_id}/verification', body()).status_code == 401
     assert client.get('/api/v1/cases').status_code == 401
+
+
+def test_resolved_case_is_searchable_as_case(client, login, session_factory, demo_ids, pending, ports):
+    import json
+    from app.agent.tools import ToolExecutor
+    from test_boundary_integration import prepare
+    incident_id, _ = pending
+    case_id = verification(client, incident_id).json()['data']['case_id']
+    login('reporter')
+    report = post(client, '/incidents', {'equipment_id': demo_ids['equipment'], 'text': '비슷한 확인 범위 사건'})
+    assert report.status_code == 202
+    context = prepare(session_factory, ports)
+    result = ToolExecutor(session_factory, context)('search_similar_incidents', json.dumps({
+        'equipment_id': demo_ids['equipment'], 'query': '확인 범위'}))
+    assert result['outcome'] == 'OK', result
+    hit = next(x for x in result['data']['items'] if x['case_id'] == case_id)
+    assert hit['source_type'] == 'case' and hit['source_id'] == case_id
+
+
+def test_snapshot_insert_failure_rolls_back_every_write(client, session_factory, pending):
+    from sqlalchemy import event
+    incident_id, _ = pending
+    def fail(*args):
+        raise DomainError(503, 'SERVICE_UNAVAILABLE', 'Injected case insert failure')
+    key = str(uuid4())
+    event.listen(db.ResolutionCase, 'before_insert', fail)
+    try:
+        assert verification(client, incident_id, key=key).status_code == 503
+    finally:
+        event.remove(db.ResolutionCase, 'before_insert', fail)
+    assert_no_resolution(session_factory, incident_id)
+    with session_factory() as tx:
+        assert tx.get(db.Incident, incident_id).version == 6
+        assert tx.scalar(select(func.count()).select_from(db.Event).where(db.Event.type == 'incident_resolved')) == 0
+        assert tx.scalar(select(func.count()).select_from(db.CommandReceipt).where(db.CommandReceipt.idempotency_key == key)) == 0
+    assert verification(client, incident_id, key=key).status_code == 200
+
+
+def test_scope_before_replay_but_owner_after_replay(client, session_factory, pending, demo_ids):
+    incident_id, _ = pending
+    key = str(uuid4())
+    first = verification(client, incident_id, key=key)
+    with session_factory.begin() as tx:
+        tx.get(db.Incident, incident_id).owner_id = demo_ids['incoming_supervisor']
+    assert verification(client, incident_id, key=key).json() == first.json()
+    assert verification(client, incident_id).status_code == 403
+    with session_factory.begin() as tx:
+        tx.get(db.Incident, incident_id).site_id = str(uuid4())
+    assert verification(client, incident_id, key=key).status_code == 404

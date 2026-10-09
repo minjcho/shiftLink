@@ -17,3 +17,17 @@ class VerificationBody(BaseModel):
         if not value.strip():
             raise ValueError("검토 사유를 입력해 주세요.")
         return value
+
+
+class VerificationResult(BaseModel):
+    incident_id: UUID
+    incident_status: Literal["RESOLVED", "INVESTIGATING"]
+    incident_version: int = Field(ge=1)
+    verification_id: UUID
+    case_id: UUID | None
+    resolved_at: str | None
+
+
+class VerificationResponse(BaseModel):
+    data: VerificationResult
+    meta: dict
