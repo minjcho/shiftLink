@@ -45,7 +45,7 @@ F0 기존 세션 P1에 해당하는 겹친 전환은 F1 화면의 `sessionBusy` 
 
 ## migration과 세션 전환
 
-유일한 chain은 `0001_f1_foundation → 0002_session_shift`다. 기존 F1의 0001 파일은 변경하지 않았다. 0002는 `session_tokens.shift_occurrence_id`와 FK만 추가하며 Incident·Message·Request·Job을 수정하지 않는다.
+공통 기반의 chain은 `0001_f1_foundation → 0002_session_shift`이며 F2 후속 revision은 0003_action_approval_unique다. 기존 F1의 0001 파일은 변경하지 않았다. 0002는 `session_tokens.shift_occurrence_id`와 FK만 추가하며 Incident·Message·Request·Job을 수정하지 않는다.
 
 0001에서 생성한 기존 세션에는 교대를 추측해 채우지 않는다. NULL을 유지하며 인증 시 재로그인을 요구한다. 새 로그인은 같은 site의 배정을 active 교대 우선, 시작 시각·ID 순으로 선택해 token에 고정한다. 현재 교대 변경만으로 이미 로그인한 사람의 교대를 조용히 변경하지 않는다. 교대 배정 삭제는 403, 만료/disabled/site 불일치/legacy token은 401이다. 유효한 배정 없는 새 로그인은 422이고 이전 세션을 폐기하지 않는다.
 
@@ -56,8 +56,8 @@ F0 기존 세션 P1에 해당하는 겹친 전환은 F1 화면의 `sessionBusy` 
 - F2는 F1의 `FeaturePorts.action_finalizer(tx, incident_id, run_id, input_version, draft_id, trigger_event_id)`를 구현한다. `tx`는 ORM Session이며 직접 commit·외부 호출을 하지 않는다. `{action_id, created, action_version}`을 반환하고 F1이 다시 검증한다.
 - F4는 `FeaturePorts.readiness_evaluator(tx, incident=...)`에 연결한다. Action 완료와 사람의 사건 해결을 분리한다.
 - F3는 `FeaturePorts.handover_refresher(tx, incident=..., event=...)`에 연결한다. 기존 인계 항목이 있는데 adapter가 없으면 전체 transaction을 거부한다.
-- API의 `create_app(..., ports=...)`와 worker의 `run_once(..., ports=...)` 양쪽에 같은 서비스를 넣어야 한다. 기본 CLI는 아직 비어 있는 FeaturePorts를 사용한다. F2/F3/F4 제품 통합을 성공으로 표시하지 않는다.
-- F1 0001에는 actions/approvals·handover·verification의 읽기 projection용 테이블도 이미 있다. 다른 기능의 CREATE TABLE migration을 그대로 붙이지 말고 실제 모델·제약 차이만 후속 revision으로 통합한다.
+- API의 `create_app(..., ports=...)`와 worker의 `run_once(..., ports=...)` 양쪽에 같은 서비스를 넣어야 한다. 기본 API와 worker CLI는 production_ports()로 F2 확정·공통 준비 검사를 연결한다. 명시적인 port 주입은 보존한다. F3 실제 인수와 F4 사람 검증·전체 전주기 성공은 별도다.
+- F1 0001에는 actions/approvals·handover·verification의 테이블도 이미 있다. F2 연결은 0003_action_approval_unique에서 승인 revision 고유키를 추가한다. 다른 기능의 CREATE TABLE migration을 그대로 붙이지 말고 실제 모델·제약 차이만 후속 revision으로 통합한다.
 - F2/F4 패널은 `IncidentDetail.vue` slot에 연결한다. 부모가 한 상세 응답을 전달하고 명령 성공 시 `refresh()`를 호출한다. 새 상세 화면이나 자체 조회 결과를 병렬 권한 근거로 만들지 않는다.
 - 생성 타입의 보장 범위는 세션과 세 enum이다. 전체 상세 응답 타입은 현재 F1 `lib/types.ts`이며 F2의 승인·결과 패널 연결 때 추가 필드를 함께 구체화한다. F0의 다른 상세 DTO로 덮어쓰지 않는다.
 

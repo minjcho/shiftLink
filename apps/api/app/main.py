@@ -1,9 +1,9 @@
 from contextlib import asynccontextmanager
 import os
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
-from fastapi import FastAPI, Query, Request as HttpRequest
+from fastapi import FastAPI, Header, Query, Request as HttpRequest
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -16,7 +16,10 @@ from app.core.contracts import IncidentStatus
 from app.core.db import create_session_factory
 from app.core.errors import DomainError, not_found
 from app.core.models import Equipment, Evidence, Job, Shift
-from app.core.ports import FeaturePorts
+from app.core.ports import production_ports
+from app.features.actions.commands import ApprovalCommand, CompletionCommand, StartCommand
+from app.features.actions.responses import ApprovalResult, CompletionResult, StartResult, SuccessEnvelope
+from app.features.actions import orm as actions
 from app.core.transactions import execute_command
 from app.features.intake.schemas import DemoSessionBody, MessageBody, ReportBody, RetryBody
 from app.features.intake import service
@@ -27,9 +30,12 @@ def with_meta(request, body):
         "dataset_id": request.app.state.settings.dataset_id, "demo_mode": request.app.state.settings.app_env != "production"}}
 
 
-def command(request, body, handler):
+def command(request, body, handler, scope=None, idempotency_key=None):
     check_origin(request)
     principal = principal_from_request(request)
+    if scope is not None:
+        with request.app.state.session_factory() as tx:
+            scope(tx, principal)
     def wrapped(tx):
         status, payload = handler(tx, principal)
         return status, with_meta(request, payload)
@@ -41,7 +47,7 @@ def command(request, body, handler):
             segments.append(segment)
     normalized_route = "/".join(segments)
     status, result, replayed = execute_command(request.app.state.session_factory, principal,
-        request.headers.get("idempotency-key"), request.method, normalized_route,
+        idempotency_key if idempotency_key is not None else request.headers.get("idempotency-key"), request.method, normalized_route,
         body.model_dump(mode="json"), wrapped)
     return JSONResponse(result, status_code=status, headers={"Idempotent-Replayed": "true"} if replayed else {})
 
@@ -57,7 +63,7 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
     app = FastAPI(title="ShiftLink", lifespan=lifespan)
     app.state.settings = settings
     app.state.session_factory = session_factory or create_session_factory(database_url or settings.database_url)
-    app.state.ports = ports or FeaturePorts()
+    app.state.ports = ports if ports is not None else production_ports()
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.allowed_origins), allow_credentials=True,
                        allow_methods=["GET", "POST"], allow_headers=["Content-Type", "Idempotency-Key"],
                        expose_headers=["Idempotent-Replayed"])
@@ -165,6 +171,27 @@ def create_app(database_url=None, settings=None, ports=None, session_factory=Non
                 raise not_found()
             service.read_incident(tx, principal, row.incident_id)
             return with_meta(request, {"data": service.as_dict(row)})
+
+    def action_command(action_id, request, body, idempotency_key):
+        return command(request, body,
+            lambda tx, actor: actions.execute(tx, actor, action_id, body, app.state.ports),
+            scope=lambda tx, actor: actions.assert_scope(tx, actor, action_id),
+            idempotency_key=idempotency_key)
+
+    @app.post("/api/v1/actions/{action_id}/approval-decisions", response_model=SuccessEnvelope[ApprovalResult])
+    def approval(action_id: UUID, request: HttpRequest, body: ApprovalCommand,
+                 idempotency_key: Annotated[str, Header(alias="Idempotency-Key")]):
+        return action_command(action_id, request, body, idempotency_key)
+
+    @app.post("/api/v1/actions/{action_id}/start", response_model=SuccessEnvelope[StartResult])
+    def start_action(action_id: UUID, request: HttpRequest, body: StartCommand,
+                 idempotency_key: Annotated[str, Header(alias="Idempotency-Key")]):
+        return action_command(action_id, request, body, idempotency_key)
+
+    @app.post("/api/v1/actions/{action_id}/completion", response_model=SuccessEnvelope[CompletionResult])
+    def complete_action(action_id: UUID, request: HttpRequest, body: CompletionCommand,
+                 idempotency_key: Annotated[str, Header(alias="Idempotency-Key")]):
+        return action_command(action_id, request, body, idempotency_key)
 
     return app
 

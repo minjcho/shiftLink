@@ -81,3 +81,67 @@
 - F2 어댑터의 추가 Action 저장은 시험용 adapter·실제 PostgreSQL에서 재현했으나 기본 실행 미연결이므로 이슈 #11로만 등록했다. 통합 전 전체 집합 검사·rollback·실제 adapter 시험 조건을 남겼다.
 - 직접 검증은 서버133·화면70·타입계약·빌드와 실제 브라우저 기본3/비기본3 PASS다. 모델 fake·실제 HTTP/DB·미실행 제품 통합을 구분하며, 상세는 TEST_RESULTS를 따른다.
 - 읽기 전용 코드 검토의 권장에 따라 브라우저 시험의 완료 대기를 강화하고 Spec 기준 시점을 명시했다. 리뷰 스레드는 자동 해결하지 않는다. PR #6 기존 소스 브랜치에 반영하며 병합·배포는 수행하지 않는다.
+
+## F2 서버 실연결 — 2026-10-09
+
+요청: F4 전에 F2 연결 계약을 수정하고 F1 PR 업데이트를 작업 중 확인한다.
+
+- 별도 worktree `/private/tmp/shiftlink-f2-on-f1`, 브랜치 `codex/f2-on-f1`에서 구현. 원래 feature/f0-foundation과 다른 worktree는 보존.
+- 기준 F1 c46d490·F2 3670cd2. 작업 중 PR #6 HEAD를 반복 조회했고 확인 시점에 새 커밋 없음. 지속 백그라운드 감시 기능은 설치하지 않음.
+- F2 Action-only staging·ORM adapter·실제 세션/명령 receipt·준비 검사 변환, API/worker 생산 조립, 승인 revision UNIQUE 후속 migration, finalizer 추가 Action 차단. 기존 DB schema 중복 생성 없음.
+- 실제 실행: pytest 233 PASS, 기존 Web 65 PASS·build·생성 계약·diff 검사 PASS. uvicorn HTTP와 프로세스 재시작 포함. 상세는 TEST_RESULTS의 F2/F1 절.
+- 사람 검토: 대기. F3/F4/live/배포·제출은 수행하지 않음.
+- 대화 기록: 계획 단계 미저장 사실을 명시하고 확인 가능한 로컬 세션의 사용자·표시된 Codex 원문만 docs/history에 추가. 비밀·내부 추론·도구 원문은 제외.
+
+### 작업 중 F1 변경 반영
+
+2026-10-09 14:31 KST 이후 조회에서 F1 새 HEAD `7072e63`을 발견했다. F2 구현 checkpoint `6a723fa`를 보존하고 새 F1을 merge했다(`c027c54`). 코드 충돌은 없었고 CODEX_WORKLOG/PROGRESS/TEST_RESULTS의 내용 충돌은 양쪽 이력을 보존하고 현재 요약을 결합했다. 메시지 형태·검색 관련성·목록 페이지 보존을 포함한 새 시험을 재실행한다. 이슈 #11의 추가 Action 차단은 이 브랜치에서 구현했으며 GitHub 이슈 상태나 리뷰 스레드는 변경하지 않았다.
+
+최종 재검증: F1 7072e63을 포함해 서버 243 PASS(50.87초, 0 SKIP), 기존 Web 70 PASS·타입/빌드·생성 계약 PASS. 실제 F2 adapter의 generation 1 재사용 시험을 추가했다. 최초 233/65 기록은 이전 기반에서의 관측으로 보존한다. F4 구현 착수 전 서버 연결 게이트를 충족했다.
+
+## F2-001 작업 승인·수행과 F4 준비 검사
+
+| 항목 | 실제 수행 |
+|---|---|
+| 요청 | F2 구현 논의 후 사용자가 `Implement the plan.` 지시 |
+| 합의 | F0는 재곤 담당 유지. F2와 함께 F4 종료 조건 검사 함수만 구현 |
+| 기준 | minjcho, base 9de625e, 작업 후 dirty=true. 아직 구현 커밋·푸시 없음 |
+| 코드 | 후보 확정·승인/반려·착수/결과 서비스, 주입형 FastAPI router/DTO, F2 테이블, Vue 패널/client, 종료 조건 검사 |
+| 경계 | F0 공통 실행 앱·로그인·DB adapter·공유 상세 셸·migration head 중복 구현 안 함. F4 verification/case는 후속 |
+| 검증 | 서버 72 PASS, PostgreSQL 13 SKIP, Web 17 PASS, Vue 타입/DDL 컴파일 PASS. 실제 앱·DB·F1 live 통합 NOT_RUN |
+| 수정 | 폴링 시 입력/재시도 초기화 결함 수정, TypeScript/vue-tsc 호환 버전 고정, UUID 요청 키 타입 보완 |
+| 사람 검토 | 계획의 담당/범위는 사용자 선택으로 확정. 구현 코드의 사람 검토·채택·실제 UI 확인은 아직 NOT_REVIEWED |
+| 인계 | docs/16_F2_INTEGRATION.md의 F0 transaction/session/화면·F1 finalizer·F3 revision hook 연결 후 실제 통합 시험 |
+
+실제 실행 명령과 미실행 제한은 TEST_RESULTS 4절에 기록한다. 기능 코드를 작성했다는 이유로 F2 전체를 DONE으로 바꾸지 않았다.
+
+## F2-002 독립 데모 실행 (이후 F2-003에서 제거)
+
+- 실제 요청: `F2 실행 ㄱ`, 이어 사용자가 `브라우저에서 독립 데모 확인 (권장)` 선택.
+- 변경: 시험 경로에 loopback 메모리 preview 서버·Vue 진입 화면과 실행 명령을 추가했다. 실제 F2 router/service를 재사용하며 F0 인증·DB adapter는 만들지 않았다.
+- 실행: Python API 127.0.0.1:8772, Vite 127.0.0.1:5173. 승인·착수·결과 제출을 실제 HTTP로 확인하고 초기 제안 상태로 되돌렸다.
+- 검증: 서버 90 PASS(실제 PostgreSQL 13 포함), Web 17 PASS, preview 포함 타입 PASS. 실제 브라우저 조작은 도구 권한으로 NOT_RUN.
+- DB 시험용 컨테이너는 종료했고 데모 서버 두 개는 사용자 확인을 위해 실행 상태로 유지했다. 데이터는 메모리 fixture이며 프로세스 재시작 시 사라진다.
+- 사람의 화면 확인은 아직 기록되지 않았다. 미커밋·미푸시 상태이며 상세 검증 결과는 TEST_RESULTS 5절이다.
+
+
+## F2-003 임시 데모 제거와 PR 준비
+
+- 요청: 임시 화면 롤백, F2 PR 준비, 상세한 단위로 커밋 분리.
+- 제거: 시험용 메모리 API 서버, Vue preview 진입 화면·설정·실행 스크립트, preview 전용 시험 5개, uvicorn 직접 의존성. 데모 서버 두 개 종료.
+- 유지: F2 읽기/명령 계약, 승인 무결성, 종료 준비 검사, 후보 확정·승인·착수·완료 서비스, 주입형 HTTP API, PostgreSQL 테이블 제약, Vue 작업 패널과 독립 시험.
+- 검증: 제거 후 Python 85 PASS(실제 PostgreSQL 13 포함), Web 17 PASS, Vue 타입 PASS. F0 DB adapter·세션·F1/F3·브라우저 E2E는 NOT_RUN.
+- 커밋 분리: Python 시험 환경 → F2 계약·테스트 저장소 → F4 종료 준비 검사 → F2 업무 서비스·시험 → API·시험 → DB 제약·시험 → Web client·시험 환경 → 작업 패널·시험 → 인계·검증 문서.
+- PR 범위: F0 연결 전 검토용 Draft. F2 전체 완료나 운영 배포로 표시하지 않는다. 임시 데모는 이전에 커밋되지 않아 삭제 파일이 PR diff에 나타나지 않으며 실행 이력은 보존한다.
+
+## 기존 F2 PR 업데이트 — 2026-10-09
+
+사용자 요청 “F2 PR 업데이트?”에 따라 기존 #5를 갱신한다. 원격 minjcho 3670cd2를 merge해 기존 패널과 커밋 이력을 보존했다. 최신 F1 기반의 서버 연결 계약을 유지하고 문서 충돌은 현재 요약과 양쪽 작업 기록을 보존해 해결했다. 공통 Web70·F2 패널17·타입/빌드 PASS, 서버 소스는 ff1fb4e와 동일하다. non-force push로 minjcho를 갱신하고 F1 구현이 중복 diff에 나타나지 않도록 대상 브랜치를 codex/f1-intake-investigation-pr로 변경한다. Draft는 유지하며 병합하지 않는다.
+
+## 2026-10-09 F2 리뷰 최소 보완
+
+사용자 요청: 작은 리뷰 두 건 수정 후 나머지는 시간 제약을 명시해 이슈로 추적하고 PR 병합.
+
+- F2 production route의 Idempotency-Key 선언·명시 전달, 완료 result/evidence_refs 상한과 API 계약 갱신.
+- 누락 헤더·상한 초과 거부 및 쓰기 없음·경계 수용 회귀 추가. 전체 서버249 PASS, 생성 계약/공백 검사 PASS.
+- 기존 Worker Lock #10 및 F1 후속 #13/#14/#15 재사용, 패널/전주기 후속 #16 등록. 실제 모델·전체 브라우저 검증은 NOT_RUN.

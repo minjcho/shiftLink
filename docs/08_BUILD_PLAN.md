@@ -63,7 +63,7 @@ F3와 F4는 공유 계약 확정 후 각자 구현할 수 있다. 최종 통합�
 
 아래 표는 책임·불변 조건을 고정한다. 최종 Python/TypeScript 이름과 JSON 필드는 [API](04_API_CONTRACT.md)에 한 번 정의한다. 이 표의 이름 때문에 별도 HTTP endpoint를 추가하지 않는다.
 
-F2의 내부 인터페이스는 `finalize_action_proposal(tx, *, incident_id, run_id, input_version, draft_id, trigger_event_id) -> {action_id, created, action_version}`이다. F1 finalizer가 F0 공통 트랜잭션·버전·lease 검사를 사용해 호출한다. F2는 같은 트랜잭션에서 필요한 이벤트 정보를 제공하고 직접 commit하지 않는다.
+F2의 내부 인터페이스는 `finalize_action_proposal(tx, *, incident_id, run_id, input_version, draft_id, trigger_event_id) -> {action_id, created, action_version}`이다. F1 finalizer가 F0 공통 트랜잭션·버전·lease 검사를 사용해 호출한다. F2는 같은 트랜잭션에서 Action만 저장하고 직접 commit하지 않는다. Incident 상태·이벤트·버전은 F1 finalizer가 반환된 Action ID로 한 번만 반영한다.
 
 | 제공 → 사용 | 인계할 내용 | 필수 보장 |
 |---|---|---|
