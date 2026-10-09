@@ -218,3 +218,7 @@ ACK는 지정 수신 supervisor·최신 revision/token·현재 Incident 버전�
 저장은 timezone-aware UTC, 화면·교대 해석은 Asia/Seoul이다. 모르는 observed_at은 null이다. 데모 자료는 합성 데이터이며 실제 설비 제어·현장 안전 검증을 증명하지 않는다.
 
 이 계약의 실제 검증은 [시험 계획](07_TEST_PLAN.md)의 T1–T12에서 수행한다. 특히 T9 일반 메시지 버전, T10 반려 후 차단, T11 만료 worker, T12 인계 범위·유일키를 확인한다. 현재 모든 런타임 검증은 NOT_RUN이다.
+
+## F1 기반 세션 구현 보완 — 2026-10-09
+
+공유 물리 모델은 `app.core.models.Base`와 F1의 `0001_f1_foundation`을 기준으로 통합한다. 후속 `0002_session_shift`는 SessionToken에 교대 FK를 추가한다. 기존 token의 교대는 추측하지 않고 NULL을 유지해 재로그인을 요구한다. 세션은 선택한 배정에 고정되며 매 요청 사용자 활성·동일 site·배정 존재를 재검사한다. 업무 상태·버전·권한 계약 D01~D07은 유지한다. 기존 독립 F0 #8 schema는 이 chain에 섞지 않는다. [실행·인계](17_F0_FOUNDATION.md) 참고.

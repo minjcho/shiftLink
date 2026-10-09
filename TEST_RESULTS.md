@@ -83,3 +83,33 @@ Chromium 설치 전 첫 시도는 실행 파일 부재로 실패했고 설치 �
 직접 시험 당시 HEAD는 9c098cc이고 후속 F1 문서/기록 가져오기 변경만 dirty였다. 실행 소스와 시험 정의는 0fbdbac과 동일하다. 최종 PR commit은 문서·기록만 더하며 같은 실행 소스를 유지한다. PostgreSQL은 기존 시험 전용 컨테이너와 새 임의 schema를 사용했고 harness는 시험 프로세스/schema를 정리했다. 의존성은 동일한 기존 로컬 설치를 재사용했다.
 
 보존한 Seal seq 84는 F3 포함 tree b4e63f4에서 생성된 과거 완료 기록이다. 이것을 PR 분리 SHA의 새로운 ha 완료로 보고하지 않는다. 이 절의 결과는 별도로 직접 실행한 검증이다. 실제 모델·F2/F3/F4 제품 통합·배포·제출은 NOT_RUN이며 모델 fake와 계약 대체를 명시한다.
+
+## F0를 F1 기준으로 이식 — 2026-10-09
+
+기준 F1 `ec6c9f1`, 실행 코드/시험 커밋 `b5fc484` (`codex/f0-on-f1`). 아래 검사는 해당 소스의 커밋 직전 작업 트리에서 수행했으며 이후 변경은 문서·검증 기록이다. 원래 #8의 시험 결과를 이 브랜치의 결과로 재사용하지 않았다.
+
+| 검사 / 실제 명령 | 결과 | 범위 |
+|---|---|---|
+| 변경 전 `.venv/bin/python -m pytest -q` | 88 PASS | F1 baseline, PostgreSQL 17 |
+| 변경 후 `.venv/bin/python -m pytest -q` | 104 PASS | 기존 F1 + 세션·worker·migration·잠금 회귀 16개, Python 3.13 |
+| `npm --prefix apps/web test` | 33 PASS | 기존 화면 + 계정 전환 재진입·API prefix·feature slot refresh |
+| `npm --prefix apps/web run build` | PASS | Vue 타입 검사·Vite production build |
+| `.venv/bin/python scripts/export_contracts.py --check` | PASS | 세션/enum 생성 타입 일치 |
+| `PYTHONPATH=apps/api .venv/bin/python scripts/f1_browser.py` | 1 PASS | 실제 Chromium→HTTP→PostgreSQL. API/worker 재시작, 원문/질문 보존, 지정자 답변·새 run. **모델 fake** |
+| migration 전환 시험 | PASS | 기존 0001 업무/legacy session 보존, 0002 upgrade·downgrade·upgrade 및 ORM drift 없음 |
+| `docker compose --env-file .env.f0-on-f1 -p shiftlink-f0-f1 up --build -d` | PASS | Python 3.12·Node 24, migrate/seed exit 0, DB/API healthy, Web/maintenance worker running |
+| Compose API `alembic -c apps/api/alembic.ini check` | PASS | 실행 DB와 ORM 불일치 없음 |
+| 실제 Web proxy HTTP smoke | PASS | 네 계정·설비/교대 조회, 접수와 동일 receipt 재사용, API restart 후 세션·원문 유지 |
+| 별도 worker 시작 | PASS | 두 번째 maintenance 실행 거부, key/model 없는 live 시작 거부 |
+| maintenance 동작 | PASS | QUEUED/attempt 0 유지, 시험에서 최종 만료 run 복구 |
+| 환경 생성기 | PASS | 새 파일 권한 0600, 기존 파일 재실행 시 내용 보존·실패 반환 |
+| `git diff --check` / 환경 ignore | PASS | 기존 .env·대화 기록·cache 미추적 |
+| 실제 모델 L1a/L1b/L2/L3, F2/F3/F4 제품 통합, 외부 배포·접수 | NOT_RUN | 위 fake/로컬 결과와 별도 |
+
+잠금 순서 회귀는 F1 원본 `tools.py`로 실행 시 `jobs FOR UPDATE NOWAIT`가 LockNotAvailable로 실패했고, Incident를 먼저 잠그는 수정 후 통과했다. 사람 명령이 Incident를 보유한 채 Job을 잠그는 동안 검색 도구는 Incident에서 기다리므로 역순 교착을 만들지 않는다. 원본 코드로 실패를 재현한 뒤 수정본을 복원하고 전체 검사를 실행했다.
+
+작업 중 새 시험 harness에서 venv python symlink를 resolve해 시스템 Python으로 실행한 실패와, enum을 좁힌 뒤 기존 시험 문자열의 타입 추론 오류가 있었다. harness는 현재 `sys.executable`, 시험 enum은 literal tuple로 정정해 위 결과를 확인했다. 서버 시험에는 기존 Starlette/httpx deprecation 경고 1개가 남는다. npm 설치는 기존 F1 lockfile에서 audit 3건(1 moderate, 2 critical)을 보고했다. 의존성 업데이트·공개 운영 배포 검증은 이번 범위에 포함하지 않았다.
+
+Compose 검증은 기존 `shiftlink-f0`와 분리한 `shiftlink-f0-f1` project/volume, API 18000·Web 15173을 사용했다. 새 시험 DB 컨테이너는 `shiftlink-f0-f1-tests`, 임의 schema는 검사가 정리했다. 기존 F0 DB/volume·브랜치는 변경하지 않았다. HTTP smoke Incident `efc393d1-2d47-4ace-ae35-1f4dbf3f80db`, Job `5fa96da3-2181-405a-b3e3-2c4f9f145c45`는 새 Compose DB에만 생성했다. 비밀값·쿠키는 기록하지 않았다.
+
+현재 코드에 남긴 후속 F1 리뷰 범위: 접수 재조회 실패 시 멱등키 보존, 최신 인계 선택 순서, 모델 문맥 크기 제한. 이번 보강에서 API base URL과 도구 잠금 순서 2건을 수정했으며 외부 리뷰 thread의 해결 상태를 자동 변경하지 않았다.

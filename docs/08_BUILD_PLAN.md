@@ -1,6 +1,6 @@
 # 08. 기능별 개발·통합 계획
 
-> v0.3 구현 문서 · 2026-10-09. 모든 구현 단계 `NOT_STARTED`, 런타임 검증 `NOT_RUN`.
+> v0.3 구현 문서 · 2026-10-09. 아래는 계획이며 최신 실행 상태는 PROGRESS·TEST_RESULTS를 따른다.
 > 재곤/민재 이름은 초기 배분 제안이며 당사자의 수락이나 구현 완료를 뜻하지 않는다. 일정은 조정 가능한 내부 목표다.
 
 ## 1. 개발 원칙
@@ -42,6 +42,8 @@ F2는 F1 live loop 개발과 병렬로 합의된 입력을 사용해 Action 서�
 F3와 F4는 공유 계약 확정 후 각자 구현할 수 있다. 최종 통합에서는 먼저 미완료 상태로 ACK하고, 그 다음 결과·검증을 수행해 책임 이전이 검증 권한에 반영되는지 확인한다.
 
 ## 4. 편집 경계와 공유 파일 통합
+
+2026-10-09 사용자 결정: F1 PR #6의 ORM·명령·worker·화면을 기준으로 F0를 맞춘다. 실제 공통 client/types는 `apps/web/src/lib/`, 상세 shell은 `features/intake/IncidentDetail.vue`다. F0 보강은 이 파일의 actions/resolution/history slot을 사용한다. migration은 0001_f1_foundation → 0002_session_shift를 이어가며 다른 초기 migration을 합치지 않는다. 아래 예정 경로보다 [현재 연결 계약](17_F0_FOUNDATION.md)을 우선한다.
 
 다음 경로는 신규 구현을 위한 예정 구조다. 구현 시작 전 실제 저장소와 대조한다.
 

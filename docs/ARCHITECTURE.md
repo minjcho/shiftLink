@@ -90,13 +90,14 @@ flowchart TB
 | Worker | 같은 Python 코드의 별도 단일 프로세스 | 영속 Job claim, 모델/도구 루프, 검증한 최종 반영 |
 | AI | OpenAI Responses API | 자료 조회 선택·질문·작업 후보·구조화 판단 |
 | Search | 실제 키워드 검색 | 승인 SOP·사례·로그의 출처와 내용에 기반한 결과 |
-| Local run | Docker Compose 계획 | web/api/worker/db 구성과 재시작 검증 |
+| Local run | F1 기반 Docker Compose | web/api/worker/db 구성과 재시작 검증 |
 
-다음은 **생성 예정 경로**다. 현재 이 경로의 앱·Compose·migration이 존재하거나 실행됐다는 뜻이 아니다.
+아래 기능 경로 중 intake·agent·core는 구현되어 있다. actions/handovers/resolution은 별도 기능 PR에서 통합한다. 실제 공통 경계는 [F0 안내](17_F0_FOUNDATION.md)를 따른다.
 
 ```text
 apps/web/src/features/{intake,actions,handovers,resolution}/
-apps/web/src/shared/                  # 상세 shell, API client, 공통 DTO
+apps/web/src/lib/                     # F1 API client, 공통 타입·생성 계약
+apps/web/src/features/intake/IncidentDetail.vue  # actions/resolution/history slot
 apps/api/app/features/intake/         # F1 API·서비스·저장소
 apps/api/app/features/actions/        # F2 API·서비스·저장소
 apps/api/app/features/handovers/      # F3 API·서비스·저장소
@@ -134,4 +135,4 @@ apps/api/migrations/                  # F0 순차 통합
 
 F0 계약·부팅 뒤 F1의 실제 접수 경로와 F2 내부 생성 서비스·패널을 병렬 개발한다. F2의 mock 검증은 계약 시험으로만 기록한다. F1 실제 질문·답변 이후 F2를 연결하고, 공유 상태·DTO가 고정되면 F3와 F4를 병렬로 완성한다. 마지막은 같은 Incident에서 역할을 바꾸며 끝까지 실행한다.
 
-[개발 계획](08_BUILD_PLAN.md), [기능 명세](02_FUNCTIONAL_SPEC.md), [도메인](03_DOMAIN_MODEL.md), [API](04_API_CONTRACT.md), [Agent](05_AGENT_DESIGN.md), [시험](07_TEST_PLAN.md)이 구현과 검증의 상세 기준이다. 도식 자체는 실행 증거가 아니다. 현재 부팅·OpenAI 호출·권한·동시성·전체 시연 검증은 모두 NOT_RUN이다.
+[개발 계획](08_BUILD_PLAN.md), [기능 명세](02_FUNCTIONAL_SPEC.md), [도메인](03_DOMAIN_MODEL.md), [API](04_API_CONTRACT.md), [Agent](05_AGENT_DESIGN.md), [시험](07_TEST_PLAN.md)이 구현과 검증의 상세 기준이다. 도식 자체는 실행 증거가 아니다. F1 기준 부팅·권한·동시성·fake 브라우저 검증은 TEST_RESULTS를 따른다. OpenAI live·전체 시연은 NOT_RUN이다.

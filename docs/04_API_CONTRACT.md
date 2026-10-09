@@ -92,6 +92,8 @@ F2 서비스는 caller-owned 최종 트랜잭션에 참여한다. 현재 run·In
 
 세션은 HttpOnly·SameSite=Lax 쿠키를 사용하고 HTTPS 환경에서는 Secure를 켠다. `SESSION_COOKIE_SECURE=false`는 로컬 HTTP 개발에 한한다. session secret은 `.env.example`에서 빈 값으로 두고 실제 로컬 환경에서 주입한다. 공개 데모는 제한된 접근으로 운영하며 이 전환 방식이 실제 운영 인증을 대신한다고 주장하지 않는다.
 
+세션은 로그인 시 서버가 선택한 같은 사업장의 교대 배정에 고정된다. 매 요청 enabled·site·배정을 재검사한다. 배정이 삭제되면 403, 유효 세션이 없거나 교대/site가 맞지 않으면 401이다. 교대가 없는 새 로그인은 422 SHIFT_ASSIGNMENT_MISSING이며 이전 세션을 보존한다. `0002_session_shift` 이전 token은 재로그인이 필요하다. POST `/demo/session`도 아래 `/me`와 같은 data 필드를 반환한다.
+
 GET `/me`의 data는 `user_id, display_name, role, site_id, shift_occurrence_id, duties`다. meta.build는 `app_commit_sha, working_tree_dirty, agent_mode, search_mode`만 제공하고 불명은 null로 남긴다. 전체 환경 값은 반환하지 않는다.
 
 GET `/equipment`는 id·code·label·aliases, GET `/shifts`는 허용 교대 발생 ID·시작/종료·supervisor와 허용 인계 쌍을 반환한다. 상세·목록에서 계산한 `allowed_commands`는 UI 표시 보조이며 서버 명령 검사를 대체하지 않는다.
